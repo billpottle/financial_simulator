@@ -1,0 +1,19 @@
+﻿Item,Value,,,
+Random Seed,42,,,Change to rerun with same parameters
+Years,20,,,
+Simulations,100,,,
+Investable Assets,100000,,,
+Expected Return Mean,11.88,,,
+Expected Return SD,15,,,
+Tax Rate,0.2,,,On investment income
+Expected Expenses Mean,50000,,,
+Expected Expenses SD,10000,,,
+Inflation,0.03,,,
+Additional Passive Income,5000,,,After Taxes
+Passive Income Growth Rate,0.02,,,
+Active Income,65000,,,After Taxes
+Active Income Growth Rate,0.02,,,
+Years to Work,15,,,
+Unexpected Expense Chance,0.15,,,
+Unexpected Expense Amount,10000,,,
+Depletion Threshold,20000,,,
