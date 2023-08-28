@@ -7,7 +7,7 @@ _It's hard to make predictions - especially about the future._ Yogi Berra
 
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
-##How to Use##
+##How to Use
 
 Most people would vary the input parameters and run multiple simulations. This could help you answer questions like how many years you need to work, how sensitive your situation is to unexpected expenses, how refinancing your mortage today would affect your future 20 years from now, how much you will be able to afford to contribute to children's college expenses in 10 years, how will your situation change with 3% vs 5% inflation, etc. 
 
@@ -54,3 +54,7 @@ Everyone will have that one medical bill, broken [thing], need to help family, e
 | Years To Work  | How many years you will earn active income     |
 
 Passive Income could include things like Social Security, Pensions, Rental Property Income, etc. The **Depletion Threshold** is the point where you would consider yourself 'out of money'.
+
+### Lump Sums
+
+You can also edit the file lump_sums.csv if you would like to include lump sums in your calculations. Negative numbers indicate expenses. In the example, the user will pay $20,000 for college in years 9-12. Positive numbers indicate income - in our example the user will receive a $15,000 insurance settlement in year 4. Each year should have only the net amount. 
