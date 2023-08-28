@@ -1,9 +1,18 @@
 # Financial Simulator
-Flexible Monte Carlo simulator for personal finance with PDF output of charts and tables
+Flexible Monte Carlo simulator for personal finance with PDF output of charts and tables.
 
-A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. Another, related but more difficult goal to achieve is what I call 'Financial Escape Velocity', or being able to increase your net worth through passive and investment income. Those who achieve FEV will generally have their net worth increase with age. 
+<p align="center"> <i>It's hard to make predictions - especially about the future. - Yogi Berra </i> </p>
 
-_It's hard to make predictions - especially about the future._ Yogi Berra
+A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. Another, related but more difficult goal to achieve is what I call 'Financial Escape Velocity', or being able to increase your net worth through passive and investment income. Those who achieve FEV will generally have their net worth increase with age.
+
+<p align="center">
+  <img src="assets_over_years.jpg?raw=true" alt="Different Path Trajectories">
+  <br>
+  <i>Sample of 100 different financial path trajectories. Note that best and worst case scenarious diverge more as time goes on</i>
+</p>
+
+
+
 
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
@@ -58,3 +67,49 @@ Passive Income could include things like Social Security, Pensions, Rental Prope
 ### Lump Sums
 
 You can also edit the file lump_sums.csv if you would like to include lump sums in your calculations. Negative numbers indicate expenses. In the example, the user will pay $20,000 for college in years 9-12. Positive numbers indicate income - in our example the user will receive a $15,000 insurance settlement in year 4. Each year should have only the net amount. 
+
+## How to Run
+
+If you have python installed locally, simply install the dependencies (once) and run the file (each time). 
+```
+pip install matplotlib numpy pandas
+python simulation.py
+```
+
+otherwise, simply click on simulation.exe (Windows Users). 
+
+In either case, make sure inputs.csv and lump_sums.csv are in the directory. 
+
+## Results
+
+A pdf file will be generated in the same directory containing graphs and tables
+
+<p align="center">
+  <img src="key_insights.jpg?raw=true" alt="key insights">
+  <br>
+  <i>The key insights table shows the chance of various scenarios. In this case, there is a 4% chance of running out of money entirely, and a 
+  53% chance of achieving Financial Escape Velocity. </i>
+</p>
+
+For the purpose of this simulation, escape velocity is defined as once you started earning more from passive income and investments than your expenses, if that continued <b>on average</b> through the rest of the simulation. So, one bad year wouldn't knock you out. Out of all the simulations that achieved this, the median year is also reported. 
+
+<p align="center">
+  <img src="table1.jpg?raw=true" alt="Summary table">
+  <br>
+  <i>Median values of several key parameters throughout the years</i>
+</p>
+
+<p align="center">
+  <img src="graph1.jpg?raw=true" alt="Median values graphed over time">
+  <br>
+  <i>Same information as above but in chart form</i>
+</p>
+
+<p align="center">
+  <img src="fev_graph.jpg?raw=true" alt="FEV graph">
+  <br>
+  <i>Percentage of expenses covered by income not from working</i>
+</p>
+
+The green line represents covering 100% of your expenses without working. Being above the green line is considered achieving 'Financial Escape Velocity.' 50% of the values fall within the box plot https://en.wikipedia.org/wiki/Box_plot 
+
