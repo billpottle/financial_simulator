@@ -7,9 +7,9 @@ _It's hard to make predictions - especially about the future._ Yogi Berra
 
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
-*How to Use*
+##How to Use##
 
-Most people would vary the input parameters and run multiple simulations. This could help you answer questions like how many years you need to work, how sensitive your situation is to unexpected expenses, how refinancing your mortage today would affect your future 20 years from now, how much you will be able to afford to contribute to children's college expenses in 10 years, etc. 
+Most people would vary the input parameters and run multiple simulations. This could help you answer questions like how many years you need to work, how sensitive your situation is to unexpected expenses, how refinancing your mortage today would affect your future 20 years from now, how much you will be able to afford to contribute to children's college expenses in 10 years, how will your situation change with 3% vs 5% inflation, etc. 
 
 Edit the values in inputs.csv before running the simulation. Here is the meaning of each column
 
@@ -31,5 +31,26 @@ More simulations takes more computing time. 100 is instant on a modern computer.
 
 The default is to use the return mean and standard deviation of the SP500. If you have a blend of different assets, use weighted average here. This should not include assets such as a primary residence, but could include appreciation of rental properties. 
 
-Taxes - Taxes are paid only as necessary. For instance, if you active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). 
+**Taxes** - Taxes are paid only as necessary. For instance, if you active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). 
 
+
+| Item      | Description |
+| ----------- | ----------- |
+| Expected Expenses Mean   | How much you plan to spend each year        |
+| Expected Expenses SD   | Volatility of your expenses       |
+| Inflation   | How much things will increase in price each year      |
+| Unexpected Expense Amount   | How much you would have to cover     |
+| Unexpected Expense Chance   | Chance unexpected expense happens      |
+
+Everyone will have that one medical bill, broken [thing], need to help family, etc. The default values assume a 15% chance of a $10,000 expense each year. 
+
+
+| Item      | Description |
+| ----------- | ----------- |
+| Additional Passive Income   | Amount per year after tax       |
+| Passive Income Growth Rate   | Percent per year. Could be negative       |
+| Active Income   | Amount per year you earn for working after tax      |
+| Active Income Growth Rate   | Percent per year     |
+| Years To Work  | How many years you will earn active income     |
+
+Passive Income could include things like Social Security, Pensions, Rental Property Income, etc. The **Depletion Threshold** is the point where you would consider yourself 'out of money'.
