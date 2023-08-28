@@ -1,0 +1,10 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/VSWorkspaceState.json
+/.vs/financial_simulator/FileContentIndex
+/.vs/financial_simulator/v17/.wsuo
+/.vs/ProjectSettings.json
+/.vs/slnx.sqlite
+/.gitignore
