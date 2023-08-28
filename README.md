@@ -14,9 +14,9 @@ A major financial goal that many people have is being able to afford to retire, 
 
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, in the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
-##How to Use
+## How to Use
 
-Most people would vary the input parameters and run multiple simulations. This could help you answer questions like
+Most people would vary the input parameters and run multiple simulations. This could help you answer questions like:
 
 - How many years will you need to work?
 - How sensitive is your situation to unexpected expenses?
@@ -25,11 +25,11 @@ Most people would vary the input parameters and run multiple simulations. This c
 - How will your situation change with 3% vs 5% inflation?
 
 
-Edit the values in inputs.csv before running the simulation. Here is the meaning of each column
+Edit the values in inputs.csv before running the simulation. Here is the meaning of each column:
 
 | Item      | Description |
 | ----------- | ----------- |
-| Random Seed     | Change this value if you want to run the simulation again with the same parameters      |
+| Random Seed     | Change this value if you want to run the simulation again with the same parameters.      |
 | Years   | The number of years you want to simulate.        |
 | Simulations   | How many times to simulate.       |
 
@@ -37,9 +37,9 @@ More simulations takes more computing time. 100 is instant on a modern computer.
 
 | Item      | Description |
 | ----------- | ----------- |
-| Investable Assets   | The dollar amount of assets you start with        |
-| Expected Return Mean   | The average return your assets will achieve        |
-| Expected Return SD   | The volatility of your return      |
+| Investable Assets   | The dollar amount of assets you start with.        |
+| Expected Return Mean   | The average return your assets will achieve per year.       |
+| Expected Return SD   | The volatility of your return.      |
 | Tax Rate  | The percent that you will pay in taxes.      |
 
 
@@ -50,22 +50,22 @@ The default uses the return mean and standard deviation of the SP500. If you hav
 
 | Item      | Description |
 | ----------- | ----------- |
-| Expected Expenses Mean   | How much you plan to spend each year        |
-| Expected Expenses SD   | Volatility of your expenses       |
-| Inflation   | How much things will increase in price each year      |
-| Unexpected Expense Amount   | How much you would have to cover     |
-| Unexpected Expense Chance   | Chance unexpected expense happens      |
+| Expected Expenses Mean   | How much you plan to spend each year.        |
+| Expected Expenses SD   | Volatility of your expenses.       |
+| Inflation   | How much things will increase in price each year.      |
+| Unexpected Expense Amount   | How much you would have to cover.     |
+| Unexpected Expense Chance   | Chance unexpected expense happens.      |
 
 Everyone will have that one medical bill, broken [thing], need to help family, etc. The default values assume a 15% chance of a $10,000 expense each year. 
 
 
 | Item      | Description |
 | ----------- | ----------- |
-| Additional Passive Income   | Amount per year after tax       |
-| Passive Income Growth Rate   | Percent per year. Could be negative       |
-| Active Income   | Amount per year you earn for working after tax      |
-| Active Income Growth Rate   | Percent per year     |
-| Years To Work  | How many years you will earn active income     |
+| Additional Passive Income   | Amount per year after tax.       |
+| Passive Income Growth Rate   | Percent per year. Could be negative.       |
+| Active Income   | Amount per year you earn for working after tax.      |
+| Active Income Growth Rate   | Percent per year.     |
+| Years To Work  | How many years you will earn active income.     |
 
 Passive Income could include things like Social Security, Pensions, Rental Property Income, etc. The **Depletion Threshold** is the point where you would consider yourself 'out of money'.
 
@@ -118,3 +118,4 @@ For the purpose of this simulation, Financial Escape Velocity is defined as once
 
 The green line represents covering 100% of your expenses without working. Being above the green line is considered achieving 'Financial Escape Velocity.' 50% of the values fall within the [box plot](https://en.wikipedia.org/wiki/Box_plot) 
 
+Made with help from GPT Code Intrepreter. 
