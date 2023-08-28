@@ -9,9 +9,27 @@ If no one ever had any unexpected expenses, and you could predict the return of 
 
 *How to Use*
 
+Most people would vary the input parameters and run multiple simulations. This could help you answer questions like how many years you need to work, how sensitive your situation is to unexpected expenses, how refinancing your mortage today would affect your future 20 years from now, how much you will be able to afford to contribute to children's college expenses in 10 years, etc. 
+
 Edit the values in inputs.csv before running the simulation. Here is the meaning of each column
 
-| Syntax      | Description |
+| Item      | Description |
 | ----------- | ----------- |
 | Random Seed     | Change this value if you want to run the simulation again with the same parameters      |
 | Years   | The number of years you want to simulate.        |
+| Simulations   | How many times to simulate.       |
+
+More simulations takes more computing time. 100 is instant on a modern computer. 
+
+| Item      | Description |
+| ----------- | ----------- |
+| Investable Assets   | The dollar amount of assets you start with        |
+| Expected Return Mean   | The average return your assets will achieve        |
+| Expected Return SD   | The volatility of your return      |
+| Tax Rate  | The percent that you will pay in taxes.      |
+
+
+The default is to use the return mean and standard deviation of the SP500. If you have a blend of different assets, use weighted average here. This should not include assets such as a primary residence, but could include appreciation of rental properties. 
+
+Taxes - Taxes are paid only as necessary. For instance, if you active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). 
+
