@@ -45,7 +45,7 @@ More simulations takes more computing time. 100 is instant on a modern computer.
 
 The default uses the return mean and standard deviation of the SP500. If you have a blend of different assets, use weighted average here. You can use the WeightedSd.xlsx excel file to calculate the weighted average. This should not include assets such as a primary residence, but could include appreciation of rental properties. 
 
-**Taxes** - Taxes are paid only as necessary. For instance, if your active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). 
+**Taxes** - Taxes are paid only as necessary. For instance, if your active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). The simulation assumes all asset sales are subject to capital gains tax at your specified tax rate. When setting your gains rate, consider long term vs short term or simply use a weighted average.
 
 
 | Item      | Description |
