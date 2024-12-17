@@ -3,7 +3,7 @@ Flexible Monte Carlo simulator for personal finance with PDF output of charts an
 
 <p align="center"> <i>It's hard to make predictions - especially about the future. - Yogi Berra </i> </p>
 
-A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. Another, related but more difficult goal to achieve is what I call <b>'Financial Escape Velocity'</b>, or being able to increase your net worth through passive and investment income. Those who achieve FEV will generally have their net worth increase with age.
+A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. Another, related but more difficult goal to achieve is what I call <b>'Financial Escape Velocity'</b>, or being able to increase your net worth through passive and investment income. This is similar to how a rocket needs to reach a certain speed to escape Earth's gravity - once achieved, the momentum becomes self-sustaining. Those who achieve FEV will generally have their net worth increase with age.
 
 <p align="center">
   <img src="assets_over_years.jpg?raw=true" alt="Different Path Trajectories">
