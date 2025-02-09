@@ -3,7 +3,7 @@ Flexible Monte Carlo simulator for personal finance with PDF output of charts an
 
 <p align="center"> <i>It's hard to make predictions - especially about the future. - Yogi Berra </i> </p>
 
-A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. Another, related but more difficult goal to achieve is what I call <b>'Financial Escape Velocity'</b>, or being able to increase your net worth through passive and investment income. This is similar to how a rocket needs to reach a certain speed to escape Earth's gravity - once achieved, the momentum becomes self-sustaining. Those who achieve FEV will generally have their net worth increase with age.
+A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. 
 
 <p align="center">
   <img src="assets_over_years.jpg?raw=true" alt="Different Path Trajectories">
@@ -11,7 +11,14 @@ A major financial goal that many people have is being able to afford to retire, 
   <i>Sample of 100 different financial path trajectories. Note that best and worst case scenarious diverge more as time goes on</i>
 </p>
 
+Another, related but more difficult goal to achieve is what I call <b>'Financial Escape Velocity'</b>, or being able to increase your net worth through passive and investment income. This is similar to how a rocket needs to reach a certain speed to escape Earth's gravity - once achieved, the momentum becomes self-sustaining. Those who achieve FEV will generally have their net worth increase with age. For most people, their net worth will increase until they retire, but then it will decrease as they spend down their assets.
+<p align="center">
+  <img src="net_worth_over_time.png?raw=true" alt="Net Worth Over Time">
+  <br>
+  <i>Net worth progression over time.</i>
+</p>
 
+Imagine - if your income is $1,000 / month in retirement - if you spend $1,001 per month, eventually you will run out of money.  However, if you spend $999 per month, you will increase your assets each month.
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, in the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
 ## How to Use
