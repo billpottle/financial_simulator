@@ -19,6 +19,8 @@ Another, related but more difficult goal to achieve is what I call <b>'Financial
 </p>
 
 Imagine - if your income is $1,000 / month in retirement - if you spend $1,001 per month, eventually you will run out of money.  However, if you spend $999 per month, you will increase your assets each month.
+
+
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, in the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
 
 ## How to Use
