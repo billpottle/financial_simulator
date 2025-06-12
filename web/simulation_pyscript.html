@@ -5,16 +5,81 @@
     <title>Financial Simulator - PyScript</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2023.11.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2023.11.1/core.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .input-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(250px,1fr)); gap: 10px; }
         label { display:block; font-weight:bold; }
         input { width: 100%; }
         #results img { max-width: 100%; }
+        .button-container { margin: 20px 0; }
+        .button-container button { margin-right: 10px; }
+        
+        /* Loading bar styles */
+        .loading-container {
+            display: inline-block;
+            min-width: 200px;
+        }
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loading-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            height: 100%;
+            width: 100%;
+            background-color: #4CAF50;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 2px;
+        }
+        .loading-text {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #2196F3;
+            transition: width 0.3s ease-in-out;
+            border-radius: 2px;
+        }
+        .progress-text {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
 <h1>Financial Simulator</h1>
+
 <div class="input-grid">
 <label>Random Seed <input id="seed" type="number" value="42"></label>
 <label>Years <input id="years" type="number" value="20"></label>
@@ -36,10 +101,44 @@
 <label>Depletion Threshold <input id="depletion" type="number" value="20000"></label>
 </div>
 
-<label>Lump Sums (one per line: year,amount)
-<textarea id="lump_sums" rows="4" style="width:100%;">9,-20000\n10,-20000\n11,-20000\n12,-20000\n4,15000</textarea></label>
-<br>
-<button id="run" py-click="run_sim">Run Simulation</button>
+<div id="lump-sums-section">
+    <h3>Lump Sums</h3>
+    <div class="input-grid" style="grid-template-columns: auto auto auto;">
+        <label>Year <input id="lump_year" type="number" min="1" value="1"></label>
+        <label>Amount ($) <input id="lump_amount" type="number" value="0"></label>
+        <button id="add_lump_sum" py-click="add_lump_sum">Add Lump Sum</button>
+    </div>
+    <div id="lump_sums_table_container" style="margin-top: 10px;">
+        <table id="lump_sums_table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Year</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Amount</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="lump_sums_body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="button-container">
+    <div id="initial-loading" class="loading-container">
+        <div class="loading-bar"></div>
+        <div class="loading-text">Loading Python dependencies...</div>
+    </div>
+    <button id="run" py-click="run_sim" style="display: none;">Run Simulation</button>
+    <button id="export_pdf" py-click="export_to_pdf" style="display: none;">Export to PDF</button>
+</div>
+
+<div id="simulation-progress" class="loading-container" style="display: none;">
+    <div class="progress-bar">
+        <div class="progress-bar-fill" style="width: 0%"></div>
+    </div>
+    <div class="progress-text">Preparing simulation...</div>
+</div>
+
 <div id="results"></div>
 
 <py-config>
@@ -50,9 +149,100 @@ packages = ["numpy", "pandas", "matplotlib"]
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from js import document
+from js import document, window
 from pyscript import display
+from pyodide.ffi import create_proxy
 
+def check_page_ready():
+    # Check if the Add Lump Sum button is available and not disabled
+    add_button = document.getElementById('add_lump_sum')
+    if add_button and not add_button.disabled:
+        # Page is fully ready, stop the spinner and show run button
+        initial_loading = document.getElementById('initial-loading')
+        run_button = document.getElementById('run')
+        if initial_loading and run_button:
+            # Remove the loading animation
+            loading_bar = initial_loading.querySelector('.loading-bar')
+            if loading_bar:
+                loading_bar.style.animation = 'none'
+            initial_loading.style.display = 'none'
+            run_button.style.display = 'inline-block'
+    else:
+        # Check again in a short while
+        window.setTimeout(create_proxy(check_page_ready), 100)
+
+# Start checking for page readiness
+check_page_ready()
+
+def update_simulation_progress(current, total):
+    progress_container = document.getElementById('simulation-progress')
+    progress_bar = progress_container.querySelector('.progress-bar-fill')
+    progress_text = progress_container.querySelector('.progress-text')
+    
+    percentage = (current / total) * 100
+    progress_bar.style.width = f"{percentage}%"
+    progress_text.textContent = f"Running simulation {current} of {total}..."
+
+# Store lump sums in a global variable
+lump_sum_changes = {}
+
+def add_lump_sum(event=None):
+    year = int(document.getElementById('lump_year').value)
+    amount = float(document.getElementById('lump_amount').value)
+    max_years = int(document.getElementById('years').value)
+    
+    if year < 1 or year > max_years:
+        return
+    
+    lump_sum_changes[year] = amount
+    update_lump_sums_table()
+    
+    # Clear the input fields
+    document.getElementById('lump_year').value = "1"
+    document.getElementById('lump_amount').value = "0"
+
+def remove_lump_sum(year, event=None):
+    # Convert year to int to ensure we're using a hashable type
+    year_int = int(year)
+    if year_int in lump_sum_changes:
+        del lump_sum_changes[year_int]
+        update_lump_sums_table()
+
+def update_lump_sums_table():
+    tbody = document.getElementById('lump_sums_body')
+    tbody.innerHTML = ''
+    
+    for year in sorted(lump_sum_changes.keys()):
+        amount = lump_sum_changes[year]
+        row = document.createElement('tr')
+        
+        # Year cell
+        year_cell = document.createElement('td')
+        year_cell.style.border = '1px solid #ddd'
+        year_cell.style.padding = '8px'
+        year_cell.textContent = str(year)
+        row.appendChild(year_cell)
+        
+        # Amount cell
+        amount_cell = document.createElement('td')
+        amount_cell.style.border = '1px solid #ddd'
+        amount_cell.style.padding = '8px'
+        amount_cell.textContent = f"${amount:,.2f}"
+        row.appendChild(amount_cell)
+        
+        # Remove button cell
+        button_cell = document.createElement('td')
+        button_cell.style.border = '1px solid #ddd'
+        button_cell.style.padding = '8px'
+        remove_button = document.createElement('button')
+        remove_button.textContent = 'Remove'
+        # Store the year as a data attribute and use a regular function
+        remove_button.setAttribute('data-year', str(year))
+        remove_button.onclick = lambda e: remove_lump_sum(e.target.getAttribute('data-year'))
+        button_cell.appendChild(remove_button)
+        row.appendChild(button_cell)
+        
+        tbody.appendChild(row)
 
 def parse_inputs():
     get_val = lambda i: document.getElementById(i).value
@@ -76,16 +266,6 @@ def parse_inputs():
         'Unexpected Expense Amount': float(get_val('unexpected_amount')),
         'Depletion Threshold': float(get_val('depletion'))
     }
-    lump_text = get_val('lump_sums').strip()
-    lump_sum_changes = {}
-    if lump_text:
-        for line in lump_text.splitlines():
-            if ',' in line:
-                year, amt = line.split(',', 1)
-                try:
-                    lump_sum_changes[int(year.strip())] = float(amt.strip())
-                except ValueError:
-                    pass
     return data, lump_sum_changes
 
 
@@ -133,6 +313,9 @@ def run_simulation(params, lump_sum_changes):
     passive_income_over_years = np.array(passive_income_over_years)
 
     for sim in range(NUM_SIMULATIONS):
+        # Update progress
+        update_simulation_progress(sim + 1, NUM_SIMULATIONS)
+        
         assets = initial_investable_assets
         for year in range(NUM_YEARS):
             if year + 1 in lump_sum_changes:
@@ -169,6 +352,10 @@ def run_simulation(params, lump_sum_changes):
             net_asset_income_over_years[sim, year] = yearly_assets
             taxes_over_years[sim, year] = taxes_paid
 
+    # Hide progress bar when done
+    progress_container = document.getElementById('simulation-progress')
+    progress_container.style.display = 'none'
+    
     return {
         'assets_over_years': assets_over_years,
         'net_asset_income_over_years': net_asset_income_over_years,
@@ -322,6 +509,91 @@ def plot_results(data, passive_income_over_years, active_income_over_years):
     plt.close()
 
 
+async def export_to_pdf(event=None):
+    # Hide the export button during PDF generation
+    export_btn = document.getElementById('export_pdf')
+    export_btn.style.display = 'none'
+    
+    # Create PDF
+    pdf = window.jspdf.jsPDF()
+    
+    # Add title
+    pdf.setFontSize(20)
+    pdf.text("Financial Simulation Report", 20, 20)
+    
+    # Add timestamp
+    pdf.setFontSize(10)
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    pdf.text(f"Generated on: {timestamp}", 20, 30)
+    
+    # Add input parameters
+    pdf.setFontSize(12)
+    pdf.text("Simulation Parameters:", 20, 45)
+    
+    y_position = 55
+    params, _ = parse_inputs()
+    for key, value in params.items():
+        if isinstance(value, float):
+            value = f"{value:,.2f}"
+        pdf.setFontSize(10)
+        pdf.text(f"{key}: {value}", 25, y_position)
+        y_position += 7
+    
+    # Add lump sums
+    y_position += 10
+    pdf.setFontSize(12)
+    pdf.text("Lump Sums:", 20, y_position)
+    y_position += 10
+    
+    if lump_sum_changes:
+        pdf.setFontSize(10)
+        for year, amount in sorted(lump_sum_changes.items()):
+            pdf.text(f"Year {year}: ${amount:,.2f}", 25, y_position)
+            y_position += 7
+    else:
+        pdf.text("No lump sums defined", 25, y_position)
+        y_position += 7
+    
+    # Add results
+    y_position += 10
+    pdf.setFontSize(12)
+    pdf.text("Simulation Results:", 20, y_position)
+    y_position += 10
+    
+    # Get the results div
+    results_div = document.getElementById('results')
+    
+    # Convert each chart to canvas and add to PDF
+    for img in results_div.getElementsByTagName('img'):
+        # Create a new page for each chart
+        pdf.addPage()
+        
+        # Convert the image to canvas and wait for it to complete
+        canvas = await window.html2canvas(img)
+        
+        # Add the canvas to the PDF
+        img_data = canvas.toDataURL('image/png')
+        pdf.addImage(img_data, 'PNG', 20, 20, 170, 100)  # Adjust size as needed
+    
+    # Add tables
+    for table in results_div.getElementsByTagName('table'):
+        # Create a new page for each table
+        pdf.addPage()
+        
+        # Convert table to canvas and wait for it to complete
+        canvas = await window.html2canvas(table)
+        
+        # Add the canvas to the PDF
+        img_data = canvas.toDataURL('image/png')
+        pdf.addImage(img_data, 'PNG', 20, 20, 170, 100)  # Adjust size as needed
+    
+    # Save the PDF
+    pdf.save('financial_simulation_report.pdf')
+    
+    # Show the export button again
+    export_btn.style.display = 'inline-block'
+
 def run_sim(event=None):
     document.getElementById('results').innerHTML = ''
     params, lump_sum_changes = parse_inputs()
@@ -331,6 +603,9 @@ def run_sim(event=None):
     stats = calculate_end_stats(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'], params)
     display(pd.DataFrame(stats.items(), columns=['Insight','Value']), target="results")
     plot_results(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'])
+    
+    # Show the export button after simulation is complete
+    document.getElementById('export_pdf').style.display = 'inline-block'
 </py-script>
 </body>
 </html>
