@@ -8,3 +8,5 @@
 /.vs/ProjectSettings.json
 /.vs/slnx.sqlite
 /.gitignore
+simulation_results_*.pdf
+web/__pycache__/

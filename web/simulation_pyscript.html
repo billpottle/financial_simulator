@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Financial Simulator - PyScript</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(250px,1fr)); gap: 10px; }
+        label { display:block; font-weight:bold; }
+        input { width: 100%; }
+        #results img { max-width: 100%; }
+    </style>
+</head>
+<body>
+<h1>Financial Simulator</h1>
+<div class="input-grid">
+<label>Random Seed <input id="seed" type="number" value="42"></label>
+<label>Years <input id="years" type="number" value="20"></label>
+<label>Simulations <input id="sims" type="number" value="100"></label>
+<label>Investable Assets <input id="assets" type="number" value="100000"></label>
+<label>Expected Return Mean (%) <input id="ret_mean" type="number" value="11.88"></label>
+<label>Expected Return SD (%) <input id="ret_sd" type="number" value="15"></label>
+<label>Tax Rate <input id="tax_rate" type="number" value="0.2" step="0.01"></label>
+<label>Expected Expenses Mean <input id="exp_mean" type="number" value="50000"></label>
+<label>Expected Expenses SD <input id="exp_sd" type="number" value="10000"></label>
+<label>Inflation <input id="inflation" type="number" value="0.03" step="0.01"></label>
+<label>Additional Passive Income <input id="passive_income" type="number" value="5000"></label>
+<label>Passive Income Growth Rate <input id="passive_growth" type="number" value="0.02" step="0.01"></label>
+<label>Active Income <input id="active_income" type="number" value="65000"></label>
+<label>Active Income Growth Rate <input id="active_growth" type="number" value="0.02" step="0.01"></label>
+<label>Years to Work <input id="years_work" type="number" value="15"></label>
+<label>Unexpected Expense Chance <input id="unexpected_chance" type="number" value="0.15" step="0.01"></label>
+<label>Unexpected Expense Amount <input id="unexpected_amount" type="number" value="10000"></label>
+<label>Depletion Threshold <input id="depletion" type="number" value="20000"></label>
+</div>
+
+<label>Lump Sums (one per line: year,amount)
+<textarea id="lump_sums" rows="4" style="width:100%;">9,-20000\n10,-20000\n11,-20000\n12,-20000\n4,15000</textarea></label>
+<br>
+<button id="run" py-click="run_sim()">Run Simulation</button>
+<div id="results"></div>
+
+<py-config>
+packages = ["numpy", "pandas", "matplotlib"]
+</py-config>
+
+<py-script>
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from pyscript import Element
+from js import document
+
+
+def parse_inputs():
+    data = {
+        'Random Seed': int(Element('seed').value),
+        'Years': int(Element('years').value),
+        'Simulations': int(Element('sims').value),
+        'Investable Assets': float(Element('assets').value),
+        'Expected Return Mean': float(Element('ret_mean').value),
+        'Expected Return SD': float(Element('ret_sd').value),
+        'Tax Rate': float(Element('tax_rate').value),
+        'Expected Expenses Mean': float(Element('exp_mean').value),
+        'Expected Expenses SD': float(Element('exp_sd').value),
+        'Inflation': float(Element('inflation').value),
+        'Additional Passive Income': float(Element('passive_income').value),
+        'Passive Income Growth Rate': float(Element('passive_growth').value),
+        'Active Income': float(Element('active_income').value),
+        'Active Income Growth Rate': float(Element('active_growth').value),
+        'Years to Work': int(Element('years_work').value),
+        'Unexpected Expense Chance': float(Element('unexpected_chance').value),
+        'Unexpected Expense Amount': float(Element('unexpected_amount').value),
+        'Depletion Threshold': float(Element('depletion').value)
+    }
+    lump_text = Element('lump_sums').value.strip()
+    lump_sum_changes = {}
+    if lump_text:
+        for line in lump_text.splitlines():
+            if ',' in line:
+                year, amt = line.split(',', 1)
+                try:
+                    lump_sum_changes[int(year.strip())] = float(amt.strip())
+                except ValueError:
+                    pass
+    return data, lump_sum_changes
+
+
+# Simulation functions adapted from simulation.py
+
+def run_simulation(params, lump_sum_changes):
+    np.random.seed(int(params['Random Seed']))
+    NUM_SIMULATIONS = int(params['Simulations'])
+    NUM_YEARS = int(params['Years'])
+    initial_investable_assets = params['Investable Assets']
+    expected_annual_return = params['Expected Return Mean']
+    expected_annual_volatility = params['Expected Return SD']
+    initial_yearly_expenses = params['Expected Expenses Mean']
+    expenses_volatility = params['Expected Expenses SD']
+    inflation = params['Inflation']
+    unexpected_expense_chance = params['Unexpected Expense Chance']
+    unexpected_expense_amount = params['Unexpected Expense Amount']
+    passive_income = params['Additional Passive Income']
+    years_to_work = params['Years to Work']
+    active_income = params['Active Income']
+    tax_rate = params['Tax Rate']
+    active_income_growth_rate = params['Active Income Growth Rate']
+    passive_income_growth_rate = params['Passive Income Growth Rate']
+    depletion_threshold = params['Depletion Threshold']
+
+    assets_over_years = np.zeros((NUM_SIMULATIONS, NUM_YEARS))
+    net_asset_income_over_years = np.zeros((NUM_SIMULATIONS, NUM_YEARS))
+    expenses_over_years = np.zeros((NUM_SIMULATIONS, NUM_YEARS))
+    taxes_over_years = np.zeros((NUM_SIMULATIONS, NUM_YEARS))
+    unexpected_expenses_over_years = np.zeros(NUM_YEARS)
+
+    active_income_over_years = []
+    for year in range(NUM_YEARS):
+        if year < years_to_work:
+            income_for_year = active_income * (1 + active_income_growth_rate) ** year
+            active_income_over_years.append(income_for_year)
+        else:
+            active_income_over_years.append(0)
+    active_income_over_years = np.array(active_income_over_years)
+
+    passive_income_over_years = []
+    for year in range(NUM_YEARS):
+        passive_income_for_year = passive_income * (1 + passive_income_growth_rate) ** year
+        passive_income_over_years.append(passive_income_for_year)
+    passive_income_over_years = np.array(passive_income_over_years)
+
+    for sim in range(NUM_SIMULATIONS):
+        assets = initial_investable_assets
+        for year in range(NUM_YEARS):
+            if year + 1 in lump_sum_changes:
+                assets += lump_sum_changes[year + 1]
+
+            if assets > 0:
+                yearly_assets = np.random.normal(expected_annual_return / 100, expected_annual_volatility / 100) * assets
+            else:
+                yearly_assets = 0
+
+            yearly_expenses = np.random.normal(initial_yearly_expenses, expenses_volatility)
+            yearly_expenses *= (1 + inflation) ** year
+
+            if np.random.rand() < unexpected_expense_chance:
+                yearly_expenses += unexpected_expense_amount
+                unexpected_expenses_over_years[year] += 1
+
+            income_for_the_year = active_income_over_years[year] + passive_income_over_years[year]
+            assets_to_sell = 0
+            taxes_paid = 0
+            if yearly_expenses > income_for_the_year:
+                amount_needed_after_taxes = yearly_expenses - income_for_the_year
+                assets_to_sell = amount_needed_after_taxes / (1 - tax_rate)
+                taxes_paid = assets_to_sell - amount_needed_after_taxes
+
+            assets += yearly_assets
+            assets -= yearly_expenses
+            assets -= taxes_paid
+            assets += active_income_over_years[year]
+            assets += passive_income_over_years[year]
+
+            assets_over_years[sim, year] = assets
+            expenses_over_years[sim, year] = yearly_expenses
+            net_asset_income_over_years[sim, year] = yearly_assets
+            taxes_over_years[sim, year] = taxes_paid
+
+    return {
+        'assets_over_years': assets_over_years,
+        'net_asset_income_over_years': net_asset_income_over_years,
+        'expenses_over_years': expenses_over_years,
+        'taxes_over_years': taxes_over_years,
+        'passive_income_over_years': passive_income_over_years,
+        'active_income_over_years': active_income_over_years,
+        'depletion_threshold': depletion_threshold
+    }
+
+
+def generate_results_table(data):
+    assets_over_years = data['assets_over_years']
+    net_asset_income_over_years = data['net_asset_income_over_years']
+    expenses_over_years = data['expenses_over_years']
+    taxes_over_years = data['taxes_over_years']
+
+    median_assets = np.median(assets_over_years, axis=0)
+    income_from_assets = np.median(net_asset_income_over_years, axis=0)
+    annual_expenses = np.median(expenses_over_years, axis=0)
+    annual_taxes = np.median(taxes_over_years, axis=0)
+
+    df = pd.DataFrame({
+        'Year': range(1, len(median_assets) + 1),
+        'Assets': [f"${x:,.0f}" for x in median_assets],
+        'Income from Assets': [f"${x:,.0f}" for x in income_from_assets],
+        'Expenses': [f"${x:,.0f}" for x in annual_expenses],
+        'Investment Taxes': [f"${x:,.0f}" for x in annual_taxes]
+    })
+    return df
+
+
+def calculate_end_stats(data, passive_income_over_years, active_income_over_years, params):
+    assets_over_years = data['assets_over_years']
+    depletion_threshold = params['Depletion Threshold']
+    NUM_SIMULATIONS, NUM_YEARS = assets_over_years.shape
+
+    end_of_simulation_assets = assets_over_years[:, -1]
+    years_of_depletion = np.argmax(assets_over_years <= depletion_threshold, axis=1)
+    never_depleted = years_of_depletion == 0
+    years_of_depletion[never_depleted] = NUM_YEARS + 1
+    median_year_depleted = np.median(years_of_depletion[years_of_depletion != NUM_YEARS + 1])
+
+    simulations_with_depletion = np.any(assets_over_years <= depletion_threshold, axis=1)
+    depletion_percentage = np.sum(simulations_with_depletion) / NUM_SIMULATIONS * 100
+
+    count_satisfying_simulations = 0
+    first_exceeding_years_list = []
+
+    for i in range(NUM_SIMULATIONS):
+        net_asset_income_simulation = data['net_asset_income_over_years'][i, :]
+        combined_income_simulation = net_asset_income_simulation + passive_income_over_years
+        exceeding_years = np.where(combined_income_simulation > data['expenses_over_years'][i, :])[0]
+        if len(exceeding_years) > 0:
+            first_exceeding_year = exceeding_years[0]
+            total_income_subsequent_years = np.sum(combined_income_simulation[first_exceeding_year:])
+            total_expenses_subsequent_years = np.sum(data['expenses_over_years'][i, first_exceeding_year:])
+            if total_income_subsequent_years > total_expenses_subsequent_years:
+                count_satisfying_simulations += 1
+                first_exceeding_years_list.append(first_exceeding_year)
+    median_first_exceeding_year = np.median(first_exceeding_years_list)
+
+    stats = {
+        "Median investable assets left at the end": f"${np.median(end_of_simulation_assets):,.0f}",
+        "Percentage of simulations where assets were ever depleted": f"{depletion_percentage:.2f}%",
+        "Median year assets depleted": f"Year {median_year_depleted:.1f}" if median_year_depleted != NUM_YEARS + 1 and not np.isnan(median_year_depleted) else "Never",
+        "Percentage of simulations achieving escape velocity": f"{(count_satisfying_simulations * 100 / NUM_SIMULATIONS):.2f}%",
+        "Median first year escape": f"{median_first_exceeding_year:.0f}"
+    }
+    return stats
+
+
+def plot_results(data, passive_income_over_years, active_income_over_years):
+    assets_over_years = data['assets_over_years']
+    net_asset_income_over_years = data['net_asset_income_over_years']
+    expenses_over_years = data['expenses_over_years']
+    NUM_SIMULATIONS, NUM_YEARS = assets_over_years.shape
+    initial_investable_assets = float(Element('assets').value)
+
+    plt.figure(figsize=(10,5))
+    for sim in range(NUM_SIMULATIONS):
+        plt.plot(range(NUM_YEARS), assets_over_years[sim,:], color='blue', alpha=0.1)
+    plt.title('Assets over Years for Each Simulation')
+    plt.xlabel('Years')
+    plt.ylabel('Assets ($)')
+    display(plt.gcf(), target="results")
+    plt.close()
+
+    y_axis_limit = np.percentile(assets_over_years, 97.5)
+    medians = np.median(assets_over_years, axis=0)
+    extended_years = [0] + list(range(1, NUM_YEARS + 1))
+    extended_medians = [initial_investable_assets] + list(medians)
+    year_0_data = np.full((NUM_SIMULATIONS, 1), initial_investable_assets)
+    assets_over_years_with_0 = np.hstack((year_0_data, assets_over_years))
+
+    plt.figure(figsize=(15,7))
+    plt.plot(extended_years, extended_medians, color='red', marker='o', label='Median', zorder=2)
+    boxprops = dict(linestyle='-', linewidth=1, color='blue')
+    medianprops = dict(linestyle='-', linewidth=0)
+    plt.boxplot(assets_over_years_with_0, vert=True, patch_artist=True, widths=0.6, boxprops=boxprops, medianprops=medianprops, positions=extended_years)
+    plt.title('Box Plot of Investable Assets Over Years')
+    plt.xlabel('Year')
+    plt.ylabel('Investable Assets')
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.xticks(extended_years)
+    plt.ylim(-initial_investable_assets, y_axis_limit)
+    plt.xlim(0, NUM_YEARS + 1)
+    display(plt.gcf(), target="results")
+    plt.close()
+
+    years = np.arange(1, NUM_YEARS + 1)
+    plt.figure(figsize=(12,8))
+    plt.plot(years, np.median(net_asset_income_over_years, axis=0), '-o', label='Median Net Asset Income', color='blue')
+    plt.plot(years, np.median(expenses_over_years, axis=0), '-o', label='Median Expenses', color='red')
+    plt.plot(years, active_income_over_years, '-o', label='Active Income', color='green')
+    plt.plot(years, passive_income_over_years, '-o', label='Passive Income', color='purple')
+    plt.title('Income and Expenses Over Years')
+    plt.xlabel('Years')
+    plt.ylabel('Amount ($)')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    display(plt.gcf(), target="results")
+    plt.close()
+
+    plt.figure(figsize=(12,8))
+    plt.plot(years, np.median(net_asset_income_over_years, axis=0), '-o', label='Median Net Asset Income', color='blue')
+    plt.plot(years, np.median(expenses_over_years, axis=0), '-o', label='Median Expenses', color='red')
+    plt.plot(years, active_income_over_years, '-o', label='Active Income', color='green')
+    plt.plot(years, passive_income_over_years, '-o', label='Passive Income', color='purple')
+    for year, change in lump_sum_changes.items():
+        plt.scatter(year, change, color='black', s=100, zorder=5, marker='x', label=f'Lump Sum Change (Year {year})')
+    plt.title('Income and Expenses Over Years with Lump Sum Changes')
+    plt.xlabel('Years')
+    plt.ylabel('Amount ($)')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    display(plt.gcf(), target="results")
+    plt.close()
+
+    percentage_covered = (net_asset_income_over_years + passive_income_over_years[np.newaxis,:]) / expenses_over_years * 100
+    plt.figure(figsize=(15,10))
+    plt.boxplot(percentage_covered, patch_artist=True)
+    plt.axhline(y=100, color='green', linestyle='-', linewidth=4, label='100% Coverage')
+    plt.title('Distribution of Percentage of Expenses Covered')
+    plt.xlabel('Years')
+    plt.ylabel('Percentage Covered (%)')
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, axis='y')
+    display(plt.gcf(), target="results")
+    plt.close()
+
+
+def run_sim(event=None):
+    Element('results').clear()
+    params, lump_sum_changes = parse_inputs()
+    sim_data = run_simulation(params, lump_sum_changes)
+    df = generate_results_table(sim_data)
+    display(df, target="results")
+    stats = calculate_end_stats(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'], params)
+    display(pd.DataFrame(stats.items(), columns=['Insight','Value']), target="results")
+    plot_results(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'])
+</py-script>
+</body>
+</html>

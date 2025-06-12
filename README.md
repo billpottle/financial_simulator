@@ -90,9 +90,18 @@ pip install matplotlib numpy pandas
 python simulation.py
 ```
 
-otherwise, simply click on simulation.exe (Windows Users). 
+otherwise, simply click on simulation.exe (Windows Users).
 
-In either case, make sure inputs.csv and lump_sums.csv are in the directory. 
+In either case, make sure inputs.csv and lump_sums.csv are in the directory.
+
+### Browser Version
+
+You can also run the simulator directly in your browser with PyScript.
+1. Download `web/simulation_pyscript.html` from this repository.
+2. Open the file in a modern browser (no Python installation required).
+3. Enter your parameters into the form and click **Run Simulation**.
+
+This approach keeps all data local and avoids using the `simulation.exe` file.
 
 ## Results
 
