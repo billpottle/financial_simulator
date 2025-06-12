@@ -50,32 +50,32 @@ packages = ["numpy", "pandas", "matplotlib"]
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyscript import Element
 from js import document
 
 
 def parse_inputs():
+    get_val = lambda i: document.getElementById(i).value
     data = {
-        'Random Seed': int(Element('seed').value),
-        'Years': int(Element('years').value),
-        'Simulations': int(Element('sims').value),
-        'Investable Assets': float(Element('assets').value),
-        'Expected Return Mean': float(Element('ret_mean').value),
-        'Expected Return SD': float(Element('ret_sd').value),
-        'Tax Rate': float(Element('tax_rate').value),
-        'Expected Expenses Mean': float(Element('exp_mean').value),
-        'Expected Expenses SD': float(Element('exp_sd').value),
-        'Inflation': float(Element('inflation').value),
-        'Additional Passive Income': float(Element('passive_income').value),
-        'Passive Income Growth Rate': float(Element('passive_growth').value),
-        'Active Income': float(Element('active_income').value),
-        'Active Income Growth Rate': float(Element('active_growth').value),
-        'Years to Work': int(Element('years_work').value),
-        'Unexpected Expense Chance': float(Element('unexpected_chance').value),
-        'Unexpected Expense Amount': float(Element('unexpected_amount').value),
-        'Depletion Threshold': float(Element('depletion').value)
+        'Random Seed': int(get_val('seed')),
+        'Years': int(get_val('years')),
+        'Simulations': int(get_val('sims')),
+        'Investable Assets': float(get_val('assets')),
+        'Expected Return Mean': float(get_val('ret_mean')),
+        'Expected Return SD': float(get_val('ret_sd')),
+        'Tax Rate': float(get_val('tax_rate')),
+        'Expected Expenses Mean': float(get_val('exp_mean')),
+        'Expected Expenses SD': float(get_val('exp_sd')),
+        'Inflation': float(get_val('inflation')),
+        'Additional Passive Income': float(get_val('passive_income')),
+        'Passive Income Growth Rate': float(get_val('passive_growth')),
+        'Active Income': float(get_val('active_income')),
+        'Active Income Growth Rate': float(get_val('active_growth')),
+        'Years to Work': int(get_val('years_work')),
+        'Unexpected Expense Chance': float(get_val('unexpected_chance')),
+        'Unexpected Expense Amount': float(get_val('unexpected_amount')),
+        'Depletion Threshold': float(get_val('depletion'))
     }
-    lump_text = Element('lump_sums').value.strip()
+    lump_text = get_val('lump_sums').strip()
     lump_sum_changes = {}
     if lump_text:
         for line in lump_text.splitlines():
@@ -245,7 +245,7 @@ def plot_results(data, passive_income_over_years, active_income_over_years):
     net_asset_income_over_years = data['net_asset_income_over_years']
     expenses_over_years = data['expenses_over_years']
     NUM_SIMULATIONS, NUM_YEARS = assets_over_years.shape
-    initial_investable_assets = float(Element('assets').value)
+    initial_investable_assets = float(document.getElementById('assets').value)
 
     plt.figure(figsize=(10,5))
     for sim in range(NUM_SIMULATIONS):
@@ -322,7 +322,7 @@ def plot_results(data, passive_income_over_years, active_income_over_years):
 
 
 def run_sim(event=None):
-    Element('results').clear()
+    document.getElementById('results').innerHTML = ''
     params, lump_sum_changes = parse_inputs()
     sim_data = run_simulation(params, lump_sum_changes)
     df = generate_results_table(sim_data)
