@@ -39,7 +39,7 @@
 <label>Lump Sums (one per line: year,amount)
 <textarea id="lump_sums" rows="4" style="width:100%;">9,-20000\n10,-20000\n11,-20000\n12,-20000\n4,15000</textarea></label>
 <br>
-<button id="run" py-click="run_sim()">Run Simulation</button>
+<button id="run" py-click="run_sim">Run Simulation</button>
 <div id="results"></div>
 
 <py-config>
@@ -51,6 +51,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from js import document
+from pyscript import display
 
 
 def parse_inputs():
