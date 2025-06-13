@@ -75,10 +75,15 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        /* Modal styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 900px; max-height: 80vh; overflow-y: auto; border-radius: 8px; }
+        .close-modal { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-modal:hover, .close-modal:focus { color: black; text-decoration: none; cursor: pointer; }
     </style>
 </head>
 <body>
-<h1>Financial Simulator</h1>
+<h1>Financial Simulator <button id="openInstructions" style="margin-left: 20px;">Instructions</button></h1>
 
 <!-- General Parameters -->
 <h3>General Parameters</h3>
@@ -92,13 +97,14 @@
 </div>
 
 <!-- Assets -->
-<h3>Assets</h3>
+<h3>Assets <button id="toggle_assets" style="margin-left:10px;">+</button></h3>
+<div id="assets_section" style="display:none;">
 <!-- Input row for creating a new asset -->
 <div class="input-grid" style="grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap: 10px; align-items:end;">
     <label>Name <input id="asset_name" type="text" placeholder="e.g. Index Fund"></label>
-    <label>Value (\$) <input id="asset_value" type="number" value="100000" placeholder="100000"></label>
-    <label>Expected Return Mean (%) <input id="asset_ret_mean" type="number" value="7" step="0.01" placeholder="7"></label>
-    <label>Expected Return SD (%) <input id="asset_ret_sd" type="number" value="15" step="0.01" placeholder="15"></label>
+    <label>Value (\$) <input id="asset_value" type="number" placeholder="100000"></label>
+    <label>Expected Return Mean (%) <input id="asset_ret_mean" type="number" step="0.01" placeholder="7"></label>
+    <label>Expected Return SD (%) <input id="asset_ret_sd" type="number" step="0.01" placeholder="15"></label>
     <button id="add_asset" py-click="add_asset">+</button>
 </div>
 
@@ -120,6 +126,7 @@
 
 <!-- Error message for asset input -->
 <div id="asset_error" style="color: red; margin-top: 5px;"></div>
+</div> <!-- End assets_section -->
 
 <!-- Passive Income -->
 <h3>Passive Income</h3>
@@ -146,7 +153,8 @@
 </div>
 
 <div id="lump-sums-section">
-    <h3>Lump Sums</h3>
+    <h3>Lump Sums <button id="toggle_lumps" style="margin-left:10px;">+</button></h3>
+    <div id="lump_section" style="display:none;">
     <div class="input-grid" style="grid-template-columns: auto auto auto;">
         <label>Year <input id="lump_year" type="number" min="1" value="1"></label>
         <label>Amount ($) <input id="lump_amount" type="number" value="0"></label>
@@ -165,6 +173,7 @@
             </tbody>
         </table>
     </div>
+    </div> <!-- end lump_section -->
 </div>
 
 <div class="button-container">
@@ -756,7 +765,114 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         observer.observe(exportBtn, { attributes: true });
     }
+
+    // Toggle Assets section visibility
+    var toggleAssetsBtn = document.getElementById('toggle_assets');
+    var assetsSection = document.getElementById('assets_section');
+    if (toggleAssetsBtn && assetsSection) {
+        toggleAssetsBtn.addEventListener('click', function() {
+            if (assetsSection.style.display === 'none') {
+                assetsSection.style.display = 'block';
+                toggleAssetsBtn.textContent = '-';
+            } else {
+                assetsSection.style.display = 'none';
+                toggleAssetsBtn.textContent = '+';
+            }
+        });
+    }
+
+    // Toggle Lump Sums section visibility
+    var toggleLumpsBtn = document.getElementById('toggle_lumps');
+    var lumpSection = document.getElementById('lump_section');
+    if (toggleLumpsBtn && lumpSection) {
+        toggleLumpsBtn.addEventListener('click', function() {
+            if (lumpSection.style.display === 'none') {
+                lumpSection.style.display = 'block';
+                toggleLumpsBtn.textContent = '-';
+            } else {
+                lumpSection.style.display = 'none';
+                toggleLumpsBtn.textContent = '+';
+            }
+        });
+    }
+
+    // Instructions modal logic
+    var modal = document.getElementById('instructionsModal');
+    var openBtn = document.getElementById('openInstructions');
+    var closeBtn = document.getElementById('closeInstructions');
+    if (openBtn && modal && closeBtn) {
+        openBtn.addEventListener('click', function(){ modal.style.display = 'block'; });
+        closeBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
+        window.addEventListener('click', function(event){ if(event.target === modal){ modal.style.display='none'; } });
+    }
 });
 </script>
+
+<!-- Instructions Modal -->
+<div id="instructionsModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" id="closeInstructions">&times;</span>
+    <h2>Financial Simulator - Detailed Instructions</h2>
+    <p><em>"It's hard to make predictions – especially about the future." – Yogi Berra</em></p>
+
+    <h3>Project Goals</h3>
+    <p>This project helps individuals answer questions such as:</p>
+    <ul>
+      <li>How many years do I need to work before retirement is feasible?</li>
+      <li>How sensitive is my plan to inflation or unexpected expenses?</li>
+      <li>What happens to my finances if investment returns are better/worse than expected?</li>
+    </ul>
+
+    <h3>Financial Escape Velocity (FEV)</h3>
+    <p>FEV is achieved when your passive income and investment returns <strong>consistently</strong> cover 100&nbsp;% of your expenses. Once you reach FEV, your net worth should grow on its own, much like a rocket that has escaped Earth's gravity.</p>
+
+    <img src="https://raw.githubusercontent.com/billpottle/financial_simulator/refs/heads/main/fev_graph.jpg" alt="FEV graph" style="max-width: 100%; margin: 10px 0;"/>
+
+    <h3>How It Works</h3>
+    <p>The simulator performs many Monte Carlo trials (&ldquo;Simulations&rdquo;) using the parameters you provide. Each trial randomly samples investment returns, inflation, and expenses to create a possible future trajectory for your finances. Results are aggregated to show medians, distributions, and probabilities.</p>
+
+    <h3>Step-by-Step Usage</h3>
+    <ol>
+      <li><strong>General Parameters</strong> – set seed (for reproducibility), years, number of simulations, tax rate, inflation, and depletion threshold.</li>
+      <li><strong>Assets</strong> – click <code>+</code> to expand, then add each asset with its value and expected return stats. You can add or remove as many as you like.</li>
+      <li><strong>Expenses</strong>, <strong>Active Income</strong>, <strong>Passive Income</strong> – supply your living costs and income assumptions.</li>
+      <li><strong>Lump Sums</strong> – add one-off income or expenses (e.g., college tuition, inheritance) via the expandable section.</li>
+      <li>Press <strong>Run Simulation</strong>. When finished, review the tables and graphs. You may then <strong>Export to PDF</strong>.</li>
+    </ol>
+
+    <h3>Parameters Reference</h3>
+    <ul>
+      <li><b>Investable Assets</b> – total liquid assets (automatically calculated from the Assets list).</li>
+      <li><b>Expected Return Mean</b> – weighted average of asset means.</li>
+      <li><b>Expected Return SD</b> – weighted portfolio volatility.</li>
+      <li><b>Tax Rate</b> – capital-gains tax paid only when assets are sold.</li>
+      <li><b>Expenses Mean &amp; SD</b> – annual spending and its variability.</li>
+      <li><b>Inflation</b> – yearly price increase applied to expenses.</li>
+      <li><b>Unexpected Expense Chance / Amount</b> – models surprise costs (car, medical, etc.).</li>
+      <li><b>Passive &amp; Active Income</b> – recurring income streams and their growth.</li>
+      <li><b>Years to Work</b> – duration of active (employment) income.</li>
+    </ul>
+
+    <h3>Interpreting Results</h3>
+    <p>After running, you&rsquo;ll receive:</p>
+    <ul>
+      <li><b>Median Trajectories &amp; Box Plots</b> for investable assets.</li>
+      <li><b>Income vs. Expenses</b> charts.</li>
+      <li><b>Key Insights</b> table – chance of depletion, chance of achieving FEV, etc.</li>
+    </ul>
+
+    <img src="https://raw.githubusercontent.com/billpottle/financial_simulator/refs/heads/main/key_insights.jpg" alt="Key Insights" style="max-width: 100%; margin: 10px 0;"/>
+    <img src="https://raw.githubusercontent.com/billpottle/financial_simulator/refs/heads/main/table1.jpg" alt="Summary Table" style="max-width: 100%; margin: 10px 0;"/>
+    <img src="https://raw.githubusercontent.com/billpottle/financial_simulator/refs/heads/main/assets_over_years.jpg" alt="Assets Over Years" style="max-width: 100%; margin: 10px 0;"/>
+
+    <h3>Running Locally</h3>
+    <p>If you prefer Python on your machine, clone the repo and run:</p>
+    <pre><code>pip install -r requirements.txt
+python simulation.py</code></pre>
+
+    <h3>Enjoy Exploring!</h3>
+    <p>Experiment with parameters, compare scenarios, and gain insight into your financial future.</p>
+  </div>
+</div>
 </body>
 </html>
