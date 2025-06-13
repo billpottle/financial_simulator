@@ -91,12 +91,39 @@
     <label>Depletion Threshold <input id="depletion" type="number" value="20000"></label>
 </div>
 
-<!-- Financial Parameters -->
-<h3>Financial Parameters</h3>
+<!-- Assets -->
+<h3>Assets</h3>
+<!-- Input row for creating a new asset -->
+<div class="input-grid" style="grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap: 10px; align-items:end;">
+    <label>Name <input id="asset_name" type="text" placeholder="e.g. Index Fund"></label>
+    <label>Value (\$) <input id="asset_value" type="number" value="100000" placeholder="100000"></label>
+    <label>Expected Return Mean (%) <input id="asset_ret_mean" type="number" value="7" step="0.01" placeholder="7"></label>
+    <label>Expected Return SD (%) <input id="asset_ret_sd" type="number" value="15" step="0.01" placeholder="15"></label>
+    <button id="add_asset" py-click="add_asset">+</button>
+</div>
+
+<!-- Table displaying current assets -->
+<div id="assets_table_container" style="margin-top: 10px;">
+    <table id="assets_table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 8px;">Name</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Value ($)</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Mean %</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">SD %</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Action</th>
+            </tr>
+        </thead>
+        <tbody id="assets_body"></tbody>
+    </table>
+</div>
+
+<!-- Error message for asset input -->
+<div id="asset_error" style="color: red; margin-top: 5px;"></div>
+
+<!-- Passive Income -->
+<h3>Passive Income</h3>
 <div class="input-grid">
-    <label>Investable Assets <input id="assets" type="number" value="100000"></label>
-    <label>Expected Return Mean (%) <input id="ret_mean" type="number" value="11.88"></label>
-    <label>Expected Return SD (%) <input id="ret_sd" type="number" value="15"></label>
     <label>Additional Passive Income <input id="passive_income" type="number" value="5000"></label>
     <label>Passive Income Growth Rate <input id="passive_growth" type="number" value="0.02" step="0.01"></label>
 </div>
@@ -190,6 +217,88 @@ check_page_ready()
 # Store lump sums in a global variable
 lump_sum_changes = {}
 
+# Store assets as list of dicts: {'name': str, 'value': float, 'mean': float, 'sd': float}
+asset_list = []
+
+def update_assets_table():
+    tbody = document.getElementById('assets_body')
+    tbody.innerHTML = ''
+
+    for idx, asset in enumerate(asset_list):
+        row = document.createElement('tr')
+
+        def make_cell(text):
+            cell = document.createElement('td')
+            cell.style.border = '1px solid #ddd'
+            cell.style.padding = '8px'
+            cell.textContent = text
+            return cell
+
+        row.appendChild(make_cell(asset['name']))
+        row.appendChild(make_cell(f"${asset['value']:,.0f}"))
+        row.appendChild(make_cell(f"{asset['mean']:.2f}%"))
+        row.appendChild(make_cell(f"{asset['sd']:.2f}%"))
+
+        # Remove button
+        action_cell = document.createElement('td')
+        action_cell.style.border = '1px solid #ddd'
+        action_cell.style.padding = '8px'
+        remove_btn = document.createElement('button')
+        remove_btn.textContent = '-'
+        remove_btn.setAttribute('data-idx', str(idx))
+        remove_btn.onclick = lambda e: remove_asset(int(e.target.getAttribute('data-idx')))
+        action_cell.appendChild(remove_btn)
+        row.appendChild(action_cell)
+
+        tbody.appendChild(row)
+
+def add_asset(event=None):
+    name = document.getElementById('asset_name').value.strip()
+    def to_float(val):
+        try:
+            return float(val)
+        except ValueError:
+            return 0.0
+
+    value = to_float(document.getElementById('asset_value').value)
+    mean = to_float(document.getElementById('asset_ret_mean').value)
+    sd = to_float(document.getElementById('asset_ret_sd').value)
+
+    error_el = document.getElementById('asset_error')
+    error_message = ''
+    if not name:
+        error_message = 'Name is required.'
+    elif value <= 0:
+        error_message = 'Value must be positive.'
+    elif mean == 0:
+        error_message = 'Expected return mean cannot be 0 (positive or negative allowed).'
+    elif sd <= 0:
+        error_message = 'Expected return SD must be positive.'
+
+    if error_message:
+        error_el.innerHTML = error_message
+        return
+    else:
+        error_el.innerHTML = ''
+
+    asset_list.append({'name': name, 'value': value, 'mean': mean, 'sd': sd})
+    update_assets_table()
+
+    # Clear inputs
+    document.getElementById('asset_name').value = ''
+    document.getElementById('asset_value').value = ''
+    document.getElementById('asset_ret_mean').value = ''
+    document.getElementById('asset_ret_sd').value = ''
+
+def remove_asset(idx, event=None):
+    try:
+        idx_int = int(idx)
+    except ValueError:
+        return
+    if 0 <= idx_int < len(asset_list):
+        asset_list.pop(idx_int)
+        update_assets_table()
+
 def add_lump_sum(event=None):
     year = int(document.getElementById('lump_year').value)
     amount = float(document.getElementById('lump_amount').value)
@@ -250,28 +359,38 @@ def update_lump_sums_table():
 
 def parse_inputs():
     get_val = lambda i: document.getElementById(i).value
+    # ----- Compute portfolio stats from asset_list -----
+    if asset_list:
+        total_val = sum(a['value'] for a in asset_list)
+        weights = [a['value']/total_val for a in asset_list]
+        weighted_mean = sum(w * a['mean'] for w, a in zip(weights, asset_list))
+        weighted_var = sum((w**2) * (a['sd']**2) for w, a in zip(weights, asset_list))
+    else:
+        total_val = 0
+        weighted_mean = 0
+        weighted_var = 0
+
     data = {
         'Random Seed': int(get_val('seed')),
         'Years': int(get_val('years')),
         'Simulations': int(get_val('sims')),
-        'Investable Assets': float(get_val('assets')),
-        'Expected Return Mean': float(get_val('ret_mean')),
-        'Expected Return SD': float(get_val('ret_sd')),
         'Tax Rate': float(get_val('tax_rate')),
+        'Inflation': float(get_val('inflation')),
+        'Depletion Threshold': float(get_val('depletion')),
+        'Investable Assets': total_val,
+        'Expected Return Mean': weighted_mean,
+        'Expected Return SD': weighted_var ** 0.5,
         'Expected Expenses Mean': float(get_val('exp_mean')),
         'Expected Expenses SD': float(get_val('exp_sd')),
-        'Inflation': float(get_val('inflation')),
+        'Unexpected Expense Chance': float(get_val('unexpected_chance')),
+        'Unexpected Expense Amount': float(get_val('unexpected_amount')),
         'Additional Passive Income': float(get_val('passive_income')),
         'Passive Income Growth Rate': float(get_val('passive_growth')),
         'Active Income': float(get_val('active_income')),
         'Active Income Growth Rate': float(get_val('active_growth')),
-        'Years to Work': int(get_val('years_work')),
-        'Unexpected Expense Chance': float(get_val('unexpected_chance')),
-        'Unexpected Expense Amount': float(get_val('unexpected_amount')),
-        'Depletion Threshold': float(get_val('depletion'))
+        'Years to Work': int(get_val('years_work'))
     }
     return data, lump_sum_changes
-
 
 # Simulation functions adapted from simulation.py
 
