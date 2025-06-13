@@ -80,25 +80,42 @@
 <body>
 <h1>Financial Simulator</h1>
 
+<!-- General Parameters -->
+<h3>General Parameters</h3>
 <div class="input-grid">
-<label>Random Seed <input id="seed" type="number" value="42"></label>
-<label>Years <input id="years" type="number" value="20"></label>
-<label>Simulations <input id="sims" type="number" value="100"></label>
-<label>Investable Assets <input id="assets" type="number" value="100000"></label>
-<label>Expected Return Mean (%) <input id="ret_mean" type="number" value="11.88"></label>
-<label>Expected Return SD (%) <input id="ret_sd" type="number" value="15"></label>
-<label>Tax Rate <input id="tax_rate" type="number" value="0.2" step="0.01"></label>
-<label>Expected Expenses Mean <input id="exp_mean" type="number" value="50000"></label>
-<label>Expected Expenses SD <input id="exp_sd" type="number" value="10000"></label>
-<label>Inflation <input id="inflation" type="number" value="0.03" step="0.01"></label>
-<label>Additional Passive Income <input id="passive_income" type="number" value="5000"></label>
-<label>Passive Income Growth Rate <input id="passive_growth" type="number" value="0.02" step="0.01"></label>
-<label>Active Income <input id="active_income" type="number" value="65000"></label>
-<label>Active Income Growth Rate <input id="active_growth" type="number" value="0.02" step="0.01"></label>
-<label>Years to Work <input id="years_work" type="number" value="15"></label>
-<label>Unexpected Expense Chance <input id="unexpected_chance" type="number" value="0.15" step="0.01"></label>
-<label>Unexpected Expense Amount <input id="unexpected_amount" type="number" value="10000"></label>
-<label>Depletion Threshold <input id="depletion" type="number" value="20000"></label>
+    <label>Random Seed <input id="seed" type="number" value="42"></label>
+    <label>Years <input id="years" type="number" value="20"></label>
+    <label>Simulations <input id="sims" type="number" value="100"></label>
+    <label>Tax Rate <input id="tax_rate" type="number" value="0.2" step="0.01"></label>
+    <label>Inflation <input id="inflation" type="number" value="0.03" step="0.01"></label>
+    <label>Depletion Threshold <input id="depletion" type="number" value="20000"></label>
+</div>
+
+<!-- Financial Parameters -->
+<h3>Financial Parameters</h3>
+<div class="input-grid">
+    <label>Investable Assets <input id="assets" type="number" value="100000"></label>
+    <label>Expected Return Mean (%) <input id="ret_mean" type="number" value="11.88"></label>
+    <label>Expected Return SD (%) <input id="ret_sd" type="number" value="15"></label>
+    <label>Additional Passive Income <input id="passive_income" type="number" value="5000"></label>
+    <label>Passive Income Growth Rate <input id="passive_growth" type="number" value="0.02" step="0.01"></label>
+</div>
+
+<!-- Expenses -->
+<h3>Expenses</h3>
+<div class="input-grid">
+    <label>Expected Expenses Mean <input id="exp_mean" type="number" value="50000"></label>
+    <label>Expected Expenses SD <input id="exp_sd" type="number" value="10000"></label>
+    <label>Unexpected Expense Chance <input id="unexpected_chance" type="number" value="0.15" step="0.01"></label>
+    <label>Unexpected Expense Amount <input id="unexpected_amount" type="number" value="10000"></label>
+</div>
+
+<!-- Active Income -->
+<h3>Active Income</h3>
+<div class="input-grid">
+    <label>Active Income <input id="active_income" type="number" value="65000"></label>
+    <label>Active Income Growth Rate <input id="active_growth" type="number" value="0.02" step="0.01"></label>
+    <label>Years to Work <input id="years_work" type="number" value="15"></label>
 </div>
 
 <div id="lump-sums-section">
@@ -128,15 +145,8 @@
         <div class="loading-bar"></div>
         <div class="loading-text">Loading Python dependencies...</div>
     </div>
-    <button id="run" py-click="run_sim" style="display: none;">Run Simulation</button>
+    <button id="run" py-click="run_sim" disabled style="opacity: 0.6; cursor: not-allowed;">Run Simulation</button>
     <button id="export_pdf" py-click="export_to_pdf" style="display: none;">Export to PDF</button>
-</div>
-
-<div id="simulation-progress" class="loading-container" style="display: none;">
-    <div class="progress-bar">
-        <div class="progress-bar-fill" style="width: 0%"></div>
-    </div>
-    <div class="progress-text">Preparing simulation...</div>
 </div>
 
 <div id="results"></div>
@@ -149,6 +159,7 @@ packages = ["numpy", "pandas", "matplotlib"]
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import asyncio
 from js import document, window
 from pyscript import display
 from pyodide.ffi import create_proxy
@@ -166,22 +177,15 @@ def check_page_ready():
             if loading_bar:
                 loading_bar.style.animation = 'none'
             initial_loading.style.display = 'none'
-            run_button.style.display = 'inline-block'
+            run_button.disabled = False
+            run_button.style.opacity = '1'
+            run_button.style.cursor = 'pointer'
     else:
         # Check again in a short while
         window.setTimeout(create_proxy(check_page_ready), 100)
 
 # Start checking for page readiness
 check_page_ready()
-
-def update_simulation_progress(current, total):
-    progress_container = document.getElementById('simulation-progress')
-    progress_bar = progress_container.querySelector('.progress-bar-fill')
-    progress_text = progress_container.querySelector('.progress-text')
-    
-    percentage = (current / total) * 100
-    progress_bar.style.width = f"{percentage}%"
-    progress_text.textContent = f"Running simulation {current} of {total}..."
 
 # Store lump sums in a global variable
 lump_sum_changes = {}
@@ -313,9 +317,6 @@ def run_simulation(params, lump_sum_changes):
     passive_income_over_years = np.array(passive_income_over_years)
 
     for sim in range(NUM_SIMULATIONS):
-        # Update progress
-        update_simulation_progress(sim + 1, NUM_SIMULATIONS)
-        
         assets = initial_investable_assets
         for year in range(NUM_YEARS):
             if year + 1 in lump_sum_changes:
@@ -352,10 +353,6 @@ def run_simulation(params, lump_sum_changes):
             net_asset_income_over_years[sim, year] = yearly_assets
             taxes_over_years[sim, year] = taxes_paid
 
-    # Hide progress bar when done
-    progress_container = document.getElementById('simulation-progress')
-    progress_container.style.display = 'none'
-    
     return {
         'assets_over_years': assets_over_years,
         'net_asset_income_over_years': net_asset_income_over_years,
@@ -594,7 +591,15 @@ async def export_to_pdf(event=None):
     # Show the export button again
     export_btn.style.display = 'inline-block'
 
-def run_sim(event=None):
+async def run_sim(event=None):
+    # Update button text to indicate simulation is running
+    run_button = document.getElementById('run')
+    if run_button:
+        run_button.textContent = 'Simulating...'
+
+    # Yield to the browser so it can repaint the updated button text
+    await asyncio.sleep(0)
+
     document.getElementById('results').innerHTML = ''
     params, lump_sum_changes = parse_inputs()
     sim_data = run_simulation(params, lump_sum_changes)
@@ -606,6 +611,33 @@ def run_sim(event=None):
     
     # Show the export button after simulation is complete
     document.getElementById('export_pdf').style.display = 'inline-block'
+ 
 </py-script>
+
+<script>
+// Change button text to 'Simulating...' when clicked, and restore after simulation
+document.addEventListener('DOMContentLoaded', function() {
+    var runBtn = document.getElementById('run');
+    if (runBtn) {
+        runBtn.addEventListener('click', function() {
+            runBtn.textContent = 'Simulating...';
+        });
+    }
+    // Use a MutationObserver to watch for the export button to appear, which signals simulation is done
+    var exportBtn = document.getElementById('export_pdf');
+    if (exportBtn) {
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (exportBtn.style.display !== 'none') {
+                        if (runBtn) runBtn.textContent = 'Run Simulation';
+                    }
+                }
+            });
+        });
+        observer.observe(exportBtn, { attributes: true });
+    }
+});
+</script>
 </body>
 </html>
