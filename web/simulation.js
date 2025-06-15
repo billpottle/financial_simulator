@@ -3,6 +3,7 @@
 
 // Global state
 let assetList = [];
+let liabilityList = [];
 let lumpSums = new Map();
 let charts = [];
 let rng = null;
@@ -30,16 +31,15 @@ function randomNormal(mean = 0, stdDev = 1) {
 function parseInputs() {
     const getValue = (id) => stripCommas(document.getElementById(id).value);
     
-    // Compute portfolio stats from asset list
-    let totalVal = 0;
+    // Compute portfolio stats from assets + liabilities
+    const combined = [...assetList, ...liabilityList];
+    let totalVal = combined.reduce((sum, a) => sum + a.value, 0);
     let weightedMean = 0;
     let weightedVar = 0;
-    
-    if (assetList.length > 0) {
-        totalVal = assetList.reduce((sum, asset) => sum + asset.value, 0);
-        const weights = assetList.map(asset => asset.value / totalVal);
-        weightedMean = assetList.reduce((sum, asset, i) => sum + weights[i] * asset.mean, 0);
-        weightedVar = assetList.reduce((sum, asset, i) => sum + (weights[i] ** 2) * (asset.sd ** 2), 0);
+    if (combined.length > 0 && totalVal !== 0) {
+        const weights = combined.map(a => a.value / totalVal);
+        weightedMean = combined.reduce((sum, a, i) => sum + weights[i] * a.mean, 0);
+        weightedVar = combined.reduce((sum, a, i) => sum + (weights[i] ** 2) * (a.sd ** 2), 0);
     }
     
     const params = {
@@ -60,7 +60,8 @@ function parseInputs() {
         'Passive Income Growth Rate': parseFloat(getValue('passive_growth')),
         'Active Income': parseFloat(getValue('active_income')),
         'Active Income Growth Rate': parseFloat(getValue('active_growth')),
-        'Years to Work': parseInt(getValue('years_work'))
+        'Years to Work': parseInt(getValue('years_work')),
+        'Cash Target': document.getElementById('cash_target').value // 'assets' or 'liabilities'
     };
     
     return { params, lumpSums };
@@ -70,92 +71,152 @@ function parseInputs() {
 function runSimulation(params, lumpSumChanges) {
     // Set up seeded random number generator
     rng = new Math.seedrandom(params['Random Seed']);
-    
+
     const NUM_SIMULATIONS = params['Simulations'];
     const NUM_YEARS = params['Years'];
-    const initialInvestableAssets = params['Investable Assets'];
-    const expectedAnnualReturn = params['Expected Return Mean'];
-    const expectedAnnualVolatility = params['Expected Return SD'];
-    const initialYearlyExpenses = params['Expected Expenses Mean'];
-    const expensesVolatility = params['Expected Expenses SD'];
-    const inflation = params['Inflation'];
-    const unexpectedExpenseChance = params['Unexpected Expense Chance'];
-    const unexpectedExpenseAmount = params['Unexpected Expense Amount'];
-    const passiveIncome = params['Additional Passive Income'];
-    const yearsToWork = params['Years to Work'];
-    const activeIncome = params['Active Income'];
-    const taxRate = params['Tax Rate'];
-    const activeIncomeGrowthRate = params['Active Income Growth Rate'];
-    const passiveIncomeGrowthRate = params['Passive Income Growth Rate'];
-    
-    // Initialize result arrays
-    const assetsOverYears = Array(NUM_SIMULATIONS).fill().map(() => Array(NUM_YEARS).fill(0));
-    const netAssetIncomeOverYears = Array(NUM_SIMULATIONS).fill().map(() => Array(NUM_YEARS).fill(0));
-    const expensesOverYears = Array(NUM_SIMULATIONS).fill().map(() => Array(NUM_YEARS).fill(0));
-    const taxesOverYears = Array(NUM_SIMULATIONS).fill().map(() => Array(NUM_YEARS).fill(0));
-    
-    // Calculate income streams
-    const activeIncomeOverYears = Array(NUM_YEARS).fill(0).map((_, year) => {
-        if (year < yearsToWork) {
-            return activeIncome * Math.pow(1 + activeIncomeGrowthRate, year);
-        }
-        return 0;
-    });
-    
-    const passiveIncomeOverYears = Array(NUM_YEARS).fill(0).map((_, year) => {
-        return passiveIncome * Math.pow(1 + passiveIncomeGrowthRate, year);
-    });
-    
-    // Run simulations
+
+    // ---- Build extended asset list (individual assets + cash bucket) ----
+    const extendedAssets = [...assetList.map(a=>({...a})), ...liabilityList.map(l=>({...l}))];
+    const cashBucket = { name: 'General Cash', value: 0, mean: 0, sd: 0 };
+    extendedAssets.push(cashBucket);
+    const cashIdx = extendedAssets.length - 1;
+
+    const assetNames = extendedAssets.map(a => a.name);
+
+    // ---- Convenience parameter aliases ----
+    const initialYearlyExpenses   = params['Expected Expenses Mean'];
+    const expensesVolatility      = params['Expected Expenses SD'];
+    const inflation               = params['Inflation'];
+    const unexpectedChance        = params['Unexpected Expense Chance'];
+    const unexpectedAmount        = params['Unexpected Expense Amount'];
+
+    const passiveBase             = params['Additional Passive Income'];
+    const passiveGrowth           = params['Passive Income Growth Rate'];
+    const activeBase              = params['Active Income'];
+    const activeGrowth            = params['Active Income Growth Rate'];
+    const yearsToWork             = params['Years to Work'];
+    const taxRate                 = params['Tax Rate'];
+    const cashTarget              = params['Cash Target'];
+
+    // ---- Precompute income trajectories (deterministic) ----
+    const activeIncomeOverYears   = Array.from({ length: NUM_YEARS }, (_, y) => (y < yearsToWork ? activeBase * Math.pow(1+activeGrowth, y) : 0));
+    const passiveIncomeOverYears  = Array.from({ length: NUM_YEARS }, (_, y) => passiveBase * Math.pow(1+passiveGrowth, y));
+
+    // ---- Result containers ----
+    const assetsOverYears           = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const netAssetIncomeOverYears   = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const expensesOverYears         = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const taxesOverYears            = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const assetValuesOverYears      = Array.from({ length: NUM_SIMULATIONS }, () => Array.from({ length: NUM_YEARS }, () => Array(extendedAssets.length).fill(0)));
+
+    // Helper to draw normal random number
+    const drawNormal = (mean, sd) => randomNormal(mean, sd);
+
+    // Determine asset and liability indices based on initial sign
+    const assetIdxsStatic = extendedAssets.map((a, idx) => a.value >= 0 ? idx : null).filter(i => i !== null);
+    const liabilityIdxsStatic = extendedAssets.map((a, idx) => a.value < 0 ? idx : null).filter(i => i !== null);
+
     for (let sim = 0; sim < NUM_SIMULATIONS; sim++) {
-        let assets = initialInvestableAssets;
-        
+        let values = extendedAssets.map(a => a.value); // numeric array
+
         for (let year = 0; year < NUM_YEARS; year++) {
-            // Apply lump sum changes
+            // 1) Apply stochastic returns to each asset (skip cash bucket)
+            const assetGains = values.map((val, idx) => {
+                if (idx === cashIdx) return 0;
+                if (val === 0) return 0;
+                const mu = extendedAssets[idx].mean / 100;
+                const sigma = extendedAssets[idx].sd / 100;
+                return val * drawNormal(mu, sigma);
+            });
+            // Update asset values after gains
+            values = values.map((val, idx) => val + assetGains[idx]);
+
+            // 2) Apply lump sum changes to cash bucket
             if (lumpSumChanges.has(year + 1)) {
-                assets += lumpSumChanges.get(year + 1);
+                values[cashIdx] += lumpSumChanges.get(year + 1);
             }
-            
-            // Calculate asset returns
-            let yearlyAssets = 0;
-            if (assets > 0) {
-                yearlyAssets = randomNormal(expectedAnnualReturn / 100, expectedAnnualVolatility / 100) * assets;
-            }
-            
-            // Calculate expenses
-            let yearlyExpenses = randomNormal(initialYearlyExpenses, expensesVolatility);
+
+            // 3) Add active & passive income to cash bucket
+            values[cashIdx] += activeIncomeOverYears[year] + passiveIncomeOverYears[year];
+
+            // 4) Compute expenses (with volatility & inflation) & unexpected expenses
+            let yearlyExpenses = drawNormal(initialYearlyExpenses, expensesVolatility);
             yearlyExpenses *= Math.pow(1 + inflation, year);
-            
-            // Add unexpected expenses
-            if (rng() < unexpectedExpenseChance) {
-                yearlyExpenses += unexpectedExpenseAmount;
-            }
-            
-            // Calculate taxes and asset sales
-            const incomeForTheYear = activeIncomeOverYears[year] + passiveIncomeOverYears[year];
+            if (rng() < unexpectedChance) yearlyExpenses += unexpectedAmount;
+
+            // 5) Pay expenses from cash bucket; liquidate assets if needed
+            values[cashIdx] -= yearlyExpenses;
             let taxesPaid = 0;
-            
-            if (yearlyExpenses > incomeForTheYear) {
-                const amountNeededAfterTaxes = yearlyExpenses - incomeForTheYear;
-                const assetsToSell = amountNeededAfterTaxes / (1 - taxRate);
-                taxesPaid = assetsToSell - amountNeededAfterTaxes;
+            if (values[cashIdx] < 0) {
+                const shortfall = -values[cashIdx];
+                const assetsToSell = shortfall / (1 - taxRate);
+                taxesPaid = assetsToSell - shortfall;
+
+                // Sell assets proportionally based on positive values (exclude cash bucket)
+                const positiveVals = values.map(v => Math.max(v, 0));
+                const posTotal = positiveVals.reduce((a,b) => a+b, 0);
+                if (posTotal > 0) {
+                    values = values.map((v, idx) => {
+                        if (idx === cashIdx) return v + assetsToSell; // proceeds go to cash first
+                        if (v > 0) {
+                            const reduction = assetsToSell * (positiveVals[idx] / posTotal);
+                            return v - reduction;
+                        }
+                        return v;
+                    });
+                    // Cash covers taxes
+                    values[cashIdx] -= taxesPaid;
+                } else {
+                    // No positive assets; carry negative cash (general debt)
+                }
             }
-            
-            // Update assets
-            assets += yearlyAssets;
-            assets -= yearlyExpenses;
-            assets -= taxesPaid;
-            assets += activeIncomeOverYears[year];
-            assets += passiveIncomeOverYears[year];
-            
-            // Store results
-            assetsOverYears[sim][year] = assets;
+
+            // --- Ensure liabilities never become positive; redirect overflow to assets ---
+            let residualCash = values[cashIdx];
+            if (extendedAssets.length === 1 && assetList.length === 0) {
+                // No assets/liabilities defined – keep residual in cash.
+            } else if (Math.abs(residualCash) > 1e-9) {
+                if (cashTarget === 'assets' && assetIdxsStatic.length > 0) {
+                    // Split residual evenly across assets
+                    const per = residualCash / assetIdxsStatic.length;
+                    assetIdxsStatic.forEach(i => { values[i] += per; });
+                    values[cashIdx] = 0;
+                } else if (cashTarget === 'liabilities' && liabilityIdxsStatic.length > 0) {
+                    // Use surplus to pay down liabilities (or use deficit to increase them)
+                    let remaining = residualCash;
+                    // Surplus: positive remaining, reduce liabilities toward 0
+                    if (remaining > 0) {
+                        liabilityIdxsStatic.forEach(i => {
+                            if (remaining <= 0) return;
+                            const needed = -values[i]; // positive amount to bring liability to 0
+                            const pay = Math.min(needed, remaining / liabilityIdxsStatic.length);
+                            values[i] += pay;
+                            remaining -= pay;
+                        });
+                    } else { // Deficit: negative remaining – distribute equally making liabilities more negative
+                        const per = remaining / liabilityIdxsStatic.length;
+                        liabilityIdxsStatic.forEach(i => { values[i] += per; });
+                        remaining = 0;
+                    }
+                    values[cashIdx] = 0; // after applying we zero out cash
+                    // Any leftover surplus after paying all liabilities -> assets
+                    if (remaining > 0 && assetIdxsStatic.length > 0) {
+                        const perAsset = remaining / assetIdxsStatic.length;
+                        assetIdxsStatic.forEach(i => { values[i] += perAsset; });
+                    }
+                }
+            }
+
+            // 6) Store results
+            const totalAssets = values.reduce((sum, v) => sum + v, 0);
+            assetsOverYears[sim][year] = totalAssets;
+            netAssetIncomeOverYears[sim][year] = assetGains.reduce((sum, g) => sum + g, 0);
             expensesOverYears[sim][year] = yearlyExpenses;
-            netAssetIncomeOverYears[sim][year] = yearlyAssets;
             taxesOverYears[sim][year] = taxesPaid;
+            assetValuesOverYears[sim][year] = values.slice(); // copy
         }
     }
-    
+
     return {
         assetsOverYears,
         netAssetIncomeOverYears,
@@ -163,6 +224,8 @@ function runSimulation(params, lumpSumChanges) {
         taxesOverYears,
         passiveIncomeOverYears,
         activeIncomeOverYears,
+        assetValuesOverYears,
+        assetNames,
         depletionThreshold: params['Depletion Threshold']
     };
 }
@@ -685,6 +748,104 @@ function createCharts(data, params) {
             }
         }
     }));
+
+    // === NEW CHARTS: Asset / Liability Breakdown ===
+    if (data.assetValuesOverYears && data.assetValuesOverYears.length > 0) {
+        const visibleIdxs = data.assetNames.map((n,i)=> n!=='General Cash'? i:null).filter(i=>i!==null);
+        const NUM_ASSETS = visibleIdxs.length;
+        // Median value for each asset per year
+        const medianAssetValsByYear = Array.from({ length: NUM_YEARS }, (_, y) => {
+            return visibleIdxs.map(aIdx => {
+                const vals = data.assetValuesOverYears.map(sim => sim[y][aIdx]);
+                return ss.median(vals);
+            });
+        });
+
+        // ---- Grouped Bar Chart ----
+        const barContainer = document.createElement('div');
+        barContainer.className = 'chart-container';
+        barContainer.innerHTML = '<canvas id="assetBarChart"></canvas>';
+        resultsDiv.appendChild(barContainer);
+        const ctxBar = document.getElementById('assetBarChart').getContext('2d');
+
+        const barDatasets = visibleIdxs.map((idx, ord) => {
+            const name = data.assetNames[idx];
+            const hue = (ord * 360 / NUM_ASSETS) % 360;
+            return {
+                label: name,
+                data: medianAssetValsByYear.map(row => row[ord]),
+                backgroundColor: `hsl(${hue},70%,50%)`
+            };
+        });
+
+        charts.push(new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: years,
+                datasets: barDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Median Asset / Liability Values by Year'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: $${formatCurrency(ctx.parsed.y)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        title: { display: true, text: 'Year' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Value ($)' },
+                        ticks: {
+                            callback: (val) => '$' + formatCurrency(val)
+                        }
+                    }
+                }
+            }
+        }));
+
+        // ---- Pie Charts for Final Year ----
+        const finalMedians = medianAssetValsByYear[NUM_YEARS - 1];
+        const posIndices = finalMedians.map((v, i) => v > 0 ? i : -1).filter(i => i !== -1);
+        const negIndices = finalMedians.map((v, i) => v < 0 ? i : -1).filter(i => i !== -1);
+
+        function createPie(indices, titleText, canvasId) {
+            if (indices.length === 0) return;
+            const pieContainer = document.createElement('div');
+            pieContainer.className = 'chart-container';
+            pieContainer.innerHTML = `<canvas id="${canvasId}"></canvas>`;
+            resultsDiv.appendChild(pieContainer);
+            const ctxPie = document.getElementById(canvasId).getContext('2d');
+            const values = indices.map(i => Math.abs(finalMedians[i]));
+            const labels = indices.map(i => data.assetNames[visibleIdxs[i]]);
+            const pieColors = indices.map((_, idx) => `hsl(${(idx * 360 / indices.length) % 360},70%,50%)`);
+            charts.push(new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels,
+                    datasets: [{ data: values, backgroundColor: pieColors }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: titleText }
+                    }
+                }
+            }));
+        }
+
+        createPie(posIndices, 'Final Year Asset Allocation (Median)', 'assetPieChart');
+        createPie(negIndices, 'Final Year Liability Allocation (Median)', 'liabilityPieChart');
+    }
 }
 
 // Render tables
@@ -1054,7 +1215,8 @@ document.addEventListener('DOMContentLoaded', function() {
         active: `<h2>Active Income</h2><p>Your employment or business income.</p><ul><li><b>Active Income ($)</b>: after-tax annual pay.</li><li><b>Active Income Growth Rate (%)</b>: expected yearly raises.</li><li><b>Years to Work</b>: number of years this income is earned.</li></ul>`,
         passive: `<h2>Passive Income</h2><p>Recurring income streams such as pensions, Social Security, or rental income.</p><ul><li><b>Additional Passive Income ($)</b>: current annual amount.</li><li><b>Passive Income Growth Rate (%)</b>: expected yearly change (can be negative).</li></ul>`,
         expenses: `<h2>Expenses</h2><p>Annual living costs and their variability.</p><ul><li><b>Expected Expenses Mean ($)</b>: typical yearly spending.</li><li><b>Expected Expenses SD ($)</b>: variability of that spending.</li><li><b>Unexpected Expense Chance (%)</b>: probability of a surprise expense each year.</li><li><b>Unexpected Expense Amount ($)</b>: size of that surprise cost.</li></ul>`,
-        lumps: `<h2>Lump Sums</h2><p>Add one-off future cash flows.</p><ul><li><b>Year</b>: simulation year (1-n).</li><li><b>Amount ($)</b>: positive for income, negative for expenses.</li></ul>`
+        lumps: `<h2>Lump Sums</h2><p>Add one-off future cash flows.</p><ul><li><b>Year</b>: simulation year (1-n).</li><li><b>Amount ($)</b>: positive for income, negative for expenses.</li></ul>`,
+        liabilities: `<h2>Liabilities</h2><p>Add each debt you hold (credit cards, loans, mortgage).</p><ul><li><b>Name</b>: descriptive label.</li><li><b>Amount ($)</b>: outstanding balance (enter positive amount).</li><li><b>Expected Interest Mean (%)</b>: average annual interest rate (negative growth to assets).</li><li><b>Interest SD (%)</b>: volatility of that rate.</li></ul>`
     };
     
     document.querySelectorAll('.info-btn').forEach(btn => {
@@ -1091,4 +1253,77 @@ document.addEventListener('DOMContentLoaded', function() {
             Chart.ViolinPlotElement || Chart.Violin
         );
     }
+
+    // Liability management
+    document.getElementById('add_liability').addEventListener('click', addLiability);
+
+    document.getElementById('toggle_liabilities').addEventListener('click', function() {
+        const section = document.getElementById('liabilities_section');
+        const button = this;
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            button.textContent = '-';
+        } else {
+            section.style.display = 'none';
+            button.textContent = '+';
+        }
+    });
 });
+
+function updateLiabilitiesTable() {
+    const tbody = document.getElementById('liabilities_body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    liabilityList.forEach((liab, idx) => {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        nameCell.textContent = liab.name;
+        row.appendChild(nameCell);
+        const valueCell = document.createElement('td');
+        valueCell.textContent = `$${formatCurrency(-liab.value)}`; // display positive
+        row.appendChild(valueCell);
+        const meanCell = document.createElement('td');
+        meanCell.textContent = `${liab.mean.toFixed(2)}%`;
+        row.appendChild(meanCell);
+        const sdCell = document.createElement('td');
+        sdCell.textContent = `${liab.sd.toFixed(2)}%`;
+        row.appendChild(sdCell);
+        const actionCell = document.createElement('td');
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '-';
+        removeBtn.onclick = () => removeLiability(idx);
+        actionCell.appendChild(removeBtn);
+        row.appendChild(actionCell);
+        tbody.appendChild(row);
+    });
+}
+
+function addLiability() {
+    const name = document.getElementById('liability_name').value.trim();
+    const value = parseFloat(stripCommas(document.getElementById('liability_value').value)) || 0;
+    const mean = parseFloat(document.getElementById('liability_ret_mean').value) || 0;
+    const sd = parseFloat(document.getElementById('liability_ret_sd').value) || 0;
+    const errorEl = document.getElementById('liability_error');
+    let errorMessage = '';
+    if (!name) {
+        errorMessage = 'Name is required.';
+    } else if (value <= 0) {
+        errorMessage = 'Amount must be positive.';
+    } else if (sd < 0) {
+        errorMessage = 'SD must be non-negative.';
+    }
+    if (errorMessage) { errorEl.textContent = errorMessage; return; } else { errorEl.textContent=''; }
+    liabilityList.push({name, value: -Math.abs(value), mean, sd});
+    updateLiabilitiesTable();
+    document.getElementById('liability_name').value='';
+    document.getElementById('liability_value').value='';
+    document.getElementById('liability_ret_mean').value='';
+    document.getElementById('liability_ret_sd').value='';
+}
+
+function removeLiability(idx) {
+    if (idx>=0 && idx<liabilityList.length) {
+        liabilityList.splice(idx,1);
+        updateLiabilitiesTable();
+    }
+}
