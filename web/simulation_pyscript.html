@@ -668,7 +668,7 @@
                     tbody.appendChild(row)
             
             def parse_inputs():
-                get_val = lambda i: document.getElementById(i).value
+                get_val = lambda i: document.getElementById(i).value.replace(',', '')
                 # ----- Compute portfolio stats from asset_list -----
                 if asset_list:
                     total_val = sum(a['value'] for a in asset_list)
@@ -854,12 +854,12 @@
                 return stats
             
             
-            def plot_results(data, passive_income_over_years, active_income_over_years):
+            def plot_results(data, passive_income_over_years, active_income_over_years, params):
                 assets_over_years = data['assets_over_years']
                 net_asset_income_over_years = data['net_asset_income_over_years']
                 expenses_over_years = data['expenses_over_years']
                 NUM_SIMULATIONS, NUM_YEARS = assets_over_years.shape
-                initial_investable_assets = float(document.getElementById('assets').value)
+                initial_investable_assets = params.get('Investable Assets', 0)
             
                 plt.figure(figsize=(10,5))
                 for sim in range(NUM_SIMULATIONS):
@@ -1036,7 +1036,7 @@
                 display(df, target="results")
                 stats = calculate_end_stats(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'], params)
                 display(pd.DataFrame(stats.items(), columns=['Insight','Value']), target="results")
-                plot_results(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'])
+                plot_results(sim_data, sim_data['passive_income_over_years'], sim_data['active_income_over_years'], params)
                 
                 # Show the export button after simulation is complete
                 document.getElementById('export_pdf').style.display = 'inline-block'
