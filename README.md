@@ -136,4 +136,16 @@ For the purpose of this simulation, Financial Escape Velocity is defined as once
 
 The green line represents covering 100% of your expenses without working. Being above the green line is considered achieving 'Financial Escape Velocity.' 50% of the values fall within the [box plot](https://en.wikipedia.org/wiki/Box_plot) 
 
+<p align="center">
+  <img src="asset_allocation_over_time.png?raw=true" alt="Asset allocation over time">
+  <br>
+  <i>Median asset / liability breakdown through the years</i>
+</p>
+
+<p align="center">
+  <img src="ending_assets.png?raw=true" alt="Ending assets pie">
+  <br>
+  <i>Median allocation at the end of the simulation</i>
+</p>
+
 Made with help from GPT Code Intrepreter. 
