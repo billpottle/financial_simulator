@@ -5,20 +5,21 @@ Flexible Monte Carlo simulator for personal finance with PDF output of charts an
 
 A major financial goal that many people have is being able to afford to retire, broadly defined as being able to stop working and not run out of money before death. An easier goal is to be able to afford to work in an area you are passionate about but that might pay less. 
 
+## How to Run
+
+Download the file simulation.html and open it locally with any modern browser. This ensures that all the information you enter is private and never leaves your machine. 
+
+Click on the 'Intrepreting Results', 'What is FEV', and information buttons in each section for important usage instructions. 
+
+## Results
+
+Results will appear in the browser directly and you can also export a pdf file.
+
 <p align="center">
   <img src="assets_over_years.jpg?raw=true" alt="Different Path Trajectories">
   <br>
   <i>Sample of 100 different financial path trajectories. Note that best and worst case scenarious diverge more as time goes on</i>
 </p>
-
-Another, related but more difficult goal to achieve is what I call <b>'Financial Escape Velocity'</b>, or being able to increase your net worth through passive and investment income. This is similar to how a rocket needs to reach a certain speed to escape Earth's gravity - once achieved, the momentum becomes self-sustaining. Those who achieve FEV will generally have their net worth increase with age. For most people, their net worth will increase until they retire, but then it will decrease as they spend down their assets.
-<p align="center">
-  <img src="net_worth_over_time.png?raw=true" alt="Net Worth Over Time">
-  <br>
-  <i>Net worth progression over time.</i>
-</p>
-
-Imagine - if your income is $1,000 / month in retirement - if you spend $1,001 per month, eventually you will run out of money.  However, if you spend $999 per month, you will increase your assets each month.
 
 
 If no one ever had any unexpected expenses, and you could predict the return of every asset class perfectly, then personal finance would be easy because there would be one 'right' or 'best' answer. However, in the real world there is a lot of uncertainty. This program models this using a 'Monte Carlo' approach - basically running many random simulations and doing statistics on the result. 
@@ -34,25 +35,6 @@ Most people would vary the input parameters and run multiple simulations. This c
 - How will your situation change with 3% vs 5% inflation?
 
 
-Edit the values in inputs.csv before running the simulation. Here is the meaning of each column:
-
-| Item      | Description |
-| ----------- | ----------- |
-| Random Seed     | Change this value if you want to run the simulation again with the same parameters.      |
-| Years   | The number of years you want to simulate.        |
-| Simulations   | How many times to simulate.       |
-
-More simulations takes more computing time. 100 is instant on a modern computer. 
-
-| Item      | Description |
-| ----------- | ----------- |
-| Investable Assets   | The dollar amount of assets you start with.        |
-| Expected Return Mean   | The average return your assets will achieve per year.       |
-| Expected Return SD   | The volatility of your return.      |
-| Tax Rate  | The percent that you will pay in taxes.      |
-
-
-The default uses the return mean and standard deviation of the SP500. If you have a blend of different assets, use weighted average here. You can use the WeightedSd.xlsx excel file to calculate the weighted average. This should not include assets such as a primary residence, but could include appreciation of rental properties. 
 
 **Taxes** - Taxes are paid only as necessary. For instance, if your active income from working (after tax) + passive income (after tax) is higher than your expenses for the year, no assets will be sold and you will pay no tax. Otherwise, assets will be sold. For example, if you earned $50,000, but spent $60,000, you will need to sell $11,764 of assets, which will include $10,000 to cover the shortfall and $1,764 in taxes (at 15% rate). The simulation assumes all asset sales are subject to capital gains tax at your specified tax rate. When setting your gains rate, consider long term vs short term or simply use a weighted average.
 
@@ -80,72 +62,7 @@ Passive Income could include things like Social Security, Pensions, Rental Prope
 
 ### Lump Sums
 
-You can also edit the file lump_sums.csv if you would like to include lump sums in your calculations. Negative numbers indicate expenses. In the example, the user will pay $20,000 for college in years 9-12. Positive numbers indicate income - in our example the user will receive a $15,000 insurance settlement in year 4. Each year should have only the net amount. 
+You can also add include lump sums in your calculations. Negative numbers indicate expenses. For example, the user will pay $20,000 for college in years 9-12. Positive numbers indicate income - you might also expect to receive a $15,000 insurance settlement in year 4. Each year should have only the net amount. 
 
-## How to Run
 
-If you have python installed locally, simply install the dependencies (once) and run the file (each time). 
-```
-pip install matplotlib numpy pandas
-python simulation.py
-```
 
-otherwise, simply click on simulation.exe (Windows Users).
-
-In either case, make sure inputs.csv and lump_sums.csv are in the directory.
-
-### Browser Version
-
-You can also run the simulator directly in your browser with PyScript.
-1. Download `web/simulation_pyscript.html` from this repository.
-2. Open the file in a modern browser (no Python installation required).
-3. Enter your parameters into the form and click **Run Simulation**.
-
-This approach keeps all data local and avoids using the `simulation.exe` file.
-
-## Results
-
-A pdf file will be generated in the same directory containing graphs and tables
-
-<p align="center">
-  <img src="key_insights.jpg?raw=true" alt="key insights">
-  <br>
-  <i>The key insights table shows the chance of various scenarios. In this case, there is a 4% chance of running out of money entirely, and a 
-  53% chance of achieving Financial Escape Velocity. </i>
-</p>
-
-For the purpose of this simulation, Financial Escape Velocity is defined as once you started earning more from passive income and investments than your expenses, if that continued <b>on average</b> through the rest of the simulation. So, one bad year wouldn't knock you out as long as other years made up for it. Out of all the simulations that achieved this, the median first year is also reported. 
-
-<p align="center">
-  <img src="table1.jpg?raw=true" alt="Summary table">
-  <br>
-  <i>Median values of several key parameters throughout the years</i>
-</p>
-
-<p align="center">
-  <img src="graph1.jpg?raw=true" alt="Median values graphed over time">
-  <br>
-  <i>Same information as above but in chart form</i>
-</p>
-
-<p align="center">
-  <img src="fev_graph.jpg?raw=true" alt="FEV graph">
-  <br>
-  <i>Percentage of expenses covered by income not from working</i>
-</p>
-
-The green line represents covering 100% of your expenses without working. Being above the green line is considered achieving 'Financial Escape Velocity.' 50% of the values fall within the [box plot](https://en.wikipedia.org/wiki/Box_plot) 
-
-<p align="center">
-  <img src="asset_allocation_over_time.png?raw=true" alt="Asset allocation over time">
-  <br>
-  <i>Median asset / liability breakdown through the years</i>
-</p>
-
-<p align="center">
-  <img src="ending_assets.png?raw=true" alt="Ending assets pie">
-  <br>
-  <i>Median allocation at the end of the simulation</i>
-</p>
-
-Made with help from GPT Code Intrepreter. 
