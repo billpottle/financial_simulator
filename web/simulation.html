@@ -342,6 +342,15 @@
             background-color: var(--background-color);
             font-weight: 600;
         }
+
+        /* Keep label text on its own line, wrap if necessary,
+           but prevent the input from being pushed too far down */
+        label span {
+            display:block;            /* forces label text onto its own line */
+            line-height:1.2;          /* tighter text so cell height stays reasonable */
+            margin-bottom:4px;        /* breathing room above the input */
+            white-space:normal;       /* let it wrap instead of widening the grid cell */
+        }
     </style>
 </head>
 
@@ -360,14 +369,14 @@
             <p>It would be trivial to make the best financial decisions if you had a crystal ball that could tell you the
                 rate of return every asset would get every year,
                 every time an unexpected expense would pop up, etc. While we don't have a crystal ball, we can do much
-                better than just random guessing because we do have historical statistics about how certain assset
-                classes have performed in the past.
+                better than just <b>random guessing</b> because we do have <b>historical statistics</b> about how certain assset
+                classes have performed in the past. </p>
+                <p>
                 For instance, the SP500 has historically returned about 10.5% per year with a standard deviation of
                 18.5%. This means each year there is a 68% chance that the return will be between -8.0% and 29.0%.
                 This program runs many simulations of your financial future, and then does statistics on the results.
             </p>
-        </div>
-        <div class="section-card">
+    <hr />
             <p>
                 Most people would vary the input parameters and run multiple simulations. This could help you answer
                 questions like:
@@ -389,8 +398,8 @@
                 <label>Random Seed <input id="seed" type="number" value="42"></label>
                 <label>Years <input id="years" type="number" value="20"></label>
                 <label>Simulations <input id="sims" type="number" value="100"></label>
-                <label>Tax Rate (%) <input id="tax_rate" type="number" value="0.2" step="0.01"></label>
-                <label>Inflation (%) <input id="inflation" type="number" value="0.03" step="0.01"></label>
+                <label>Tax Rate (% as decimal) <input id="tax_rate" type="number" value="0.2" step="0.01"></label>
+                <label>Inflation (% as decimal) <input id="inflation" type="number" value="0.03" step="0.01"></label>
                 <label>Depletion Threshold ($) <input id="depletion" class="format-number" type="text"
                         value="20000"></label>
                 <label>Excess Cash Goes To
@@ -403,7 +412,7 @@
         </div>
 
         <div class="section-card">
-            <h3>Assets / Liabilities<button class="info-btn" data-info="assets">ℹ️</button><button id="toggle_assets"
+            <h3>Assets <button class="info-btn" data-info="assets">ℹ️</button><button id="toggle_assets"
                     style="margin-left:auto;">+</button></h3>
             <div id="assets_section" style="display:none;">
                 <!-- Input row for creating a new asset -->
@@ -411,10 +420,10 @@
                     <label>Name <input id="asset_name" type="text" placeholder="e.g. Index Fund"></label>
                     <label>Value ($) <input id="asset_value" class="format-number" type="text"
                             placeholder="100,000"></label>
-                    <label>Expected Return Mean (%) <input id="asset_ret_mean" type="number" step="0.01"
-                            placeholder="7"></label>
-                    <label>Expected Return SD (%) <input id="asset_ret_sd" type="number" step="0.01"
-                            placeholder="15"></label>
+                    <label>Expected Return Mean (% as decimal) <input id="asset_ret_mean" type="number" step="0.001"
+                            placeholder="0.07"></label>
+                    <label>Expected Return SD (% as decimal) <input id="asset_ret_sd" type="number" step="0.001"
+                            placeholder="0.15"></label>
                     <button id="add_asset" class="icon-btn">+</button>
                 </div>
 
@@ -445,8 +454,8 @@
                 <div class="assets-input-row"> <!-- reuse grid style -->
                     <label>Name <input id="liability_name" type="text" placeholder="e.g. Credit Card"></label>
                     <label>Amount ($) <input id="liability_value" class="format-number" type="text" placeholder="20,000"></label>
-                    <label>Expected Interest Mean (%) <input id="liability_ret_mean" type="number" step="0.01" placeholder="-15"></label>
-                    <label>Interest SD (%) <input id="liability_ret_sd" type="number" step="0.01" placeholder="5"></label>
+                    <label>Expected Interest Mean (% as decimal) <input id="liability_ret_mean" type="number" step="0.001" placeholder="-0.15"></label>
+                    <label>Interest SD (% as decimal) <input id="liability_ret_sd" type="number" step="0.001" placeholder="0.05"></label>
                     <button id="add_liability" class="icon-btn">+</button>
                 </div>
                 <div id="liabilities_table_container" style="margin-top:10px;">
@@ -468,7 +477,7 @@
             <div class="input-grid">
                 <label>Active Income ($) <input id="active_income" class="format-number" type="text"
                         value="65000"></label>
-                <label>Active Income Growth Rate (%) <input id="active_growth" type="number" value="0.02"
+                <label>Growth Rate (% as decimal) <input id="active_growth" type="number" value="0.02"
                         step="0.01"></label>
                 <label>Years to Work <input id="years_work" type="number" value="15"></label>
             </div>
@@ -479,7 +488,7 @@
             <div class="input-grid">
                 <label>Additional Passive Income ($) <input id="passive_income" class="format-number" type="text"
                         value="5000"></label>
-                <label>Passive Income Growth Rate (%) <input id="passive_growth" type="number" value="0.02"
+                <label>Growth Rate (% as decimal) <input id="passive_growth" type="number" value="0.02"
                         step="0.01"></label>
             </div>
         </div>
@@ -491,7 +500,7 @@
                         value="50000"></label>
                 <label>Expected Expenses SD ($) <input id="exp_sd" class="format-number" type="text"
                         value="10000"></label>
-                <label>Unexpected Expense Chance (%) <input id="unexpected_chance" type="number" value="0.15"
+                <label>Chance Per Year  (% as decimal) <input id="unexpected_chance" type="number" value="0.15"
                         step="0.01"></label>
                 <label>Unexpected Expense Amount ($) <input id="unexpected_amount" class="format-number" type="text"
                         value="10000"></label>

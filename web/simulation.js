@@ -20,9 +20,9 @@ function formatCurrency(num) {
 // Box-Muller transform for normal distribution
 function randomNormal(mean = 0, stdDev = 1) {
     let u = 0, v = 0;
-    while(u === 0) u = rng(); // Converting [0,1) to (0,1)
-    while(v === 0) v = rng();
-    
+    while (u === 0) u = rng(); // Converting [0,1) to (0,1)
+    while (v === 0) v = rng();
+
     const z0 = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     return z0 * stdDev + mean;
 }
@@ -30,7 +30,7 @@ function randomNormal(mean = 0, stdDev = 1) {
 // Input parsing and validation
 function parseInputs() {
     const getValue = (id) => stripCommas(document.getElementById(id).value);
-    
+
     // Compute portfolio stats from assets + liabilities
     const combined = [...assetList, ...liabilityList];
     let totalVal = combined.reduce((sum, a) => sum + a.value, 0);
@@ -41,7 +41,7 @@ function parseInputs() {
         weightedMean = combined.reduce((sum, a, i) => sum + weights[i] * a.mean, 0);
         weightedVar = combined.reduce((sum, a, i) => sum + (weights[i] ** 2) * (a.sd ** 2), 0);
     }
-    
+
     const params = {
         'Random Seed': parseInt(getValue('seed')),
         'Years': parseInt(getValue('years')),
@@ -63,7 +63,7 @@ function parseInputs() {
         'Years to Work': parseInt(getValue('years_work')),
         'Cash Target': document.getElementById('cash_target').value // 'assets' or 'liabilities'
     };
-    
+
     return { params, lumpSums };
 }
 
@@ -76,7 +76,7 @@ function runSimulation(params, lumpSumChanges) {
     const NUM_YEARS = params['Years'];
 
     // ---- Build extended asset list (individual assets + cash bucket) ----
-    const extendedAssets = [...assetList.map(a=>({...a})), ...liabilityList.map(l=>({...l}))];
+    const extendedAssets = [...assetList.map(a => ({ ...a })), ...liabilityList.map(l => ({ ...l }))];
     const cashBucket = { name: 'General Cash', value: 0, mean: 0, sd: 0 };
     extendedAssets.push(cashBucket);
     const cashIdx = extendedAssets.length - 1;
@@ -84,30 +84,30 @@ function runSimulation(params, lumpSumChanges) {
     const assetNames = extendedAssets.map(a => a.name);
 
     // ---- Convenience parameter aliases ----
-    const initialYearlyExpenses   = params['Expected Expenses Mean'];
-    const expensesVolatility      = params['Expected Expenses SD'];
-    const inflation               = params['Inflation'];
-    const unexpectedChance        = params['Unexpected Expense Chance'];
-    const unexpectedAmount        = params['Unexpected Expense Amount'];
+    const initialYearlyExpenses = params['Expected Expenses Mean'];
+    const expensesVolatility = params['Expected Expenses SD'];
+    const inflation = params['Inflation'];
+    const unexpectedChance = params['Unexpected Expense Chance'];
+    const unexpectedAmount = params['Unexpected Expense Amount'];
 
-    const passiveBase             = params['Additional Passive Income'];
-    const passiveGrowth           = params['Passive Income Growth Rate'];
-    const activeBase              = params['Active Income'];
-    const activeGrowth            = params['Active Income Growth Rate'];
-    const yearsToWork             = params['Years to Work'];
-    const taxRate                 = params['Tax Rate'];
-    const cashTarget              = params['Cash Target'];
+    const passiveBase = params['Additional Passive Income'];
+    const passiveGrowth = params['Passive Income Growth Rate'];
+    const activeBase = params['Active Income'];
+    const activeGrowth = params['Active Income Growth Rate'];
+    const yearsToWork = params['Years to Work'];
+    const taxRate = params['Tax Rate'];
+    const cashTarget = params['Cash Target'];
 
     // ---- Precompute income trajectories (deterministic) ----
-    const activeIncomeOverYears   = Array.from({ length: NUM_YEARS }, (_, y) => (y < yearsToWork ? activeBase * Math.pow(1+activeGrowth, y) : 0));
-    const passiveIncomeOverYears  = Array.from({ length: NUM_YEARS }, (_, y) => passiveBase * Math.pow(1+passiveGrowth, y));
+    const activeIncomeOverYears = Array.from({ length: NUM_YEARS }, (_, y) => (y < yearsToWork ? activeBase * Math.pow(1 + activeGrowth, y) : 0));
+    const passiveIncomeOverYears = Array.from({ length: NUM_YEARS }, (_, y) => passiveBase * Math.pow(1 + passiveGrowth, y));
 
     // ---- Result containers ----
-    const assetsOverYears           = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
-    const netAssetIncomeOverYears   = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
-    const expensesOverYears         = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
-    const taxesOverYears            = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
-    const assetValuesOverYears      = Array.from({ length: NUM_SIMULATIONS }, () => Array.from({ length: NUM_YEARS }, () => Array(extendedAssets.length).fill(0)));
+    const assetsOverYears = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const netAssetIncomeOverYears = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const expensesOverYears = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const taxesOverYears = Array.from({ length: NUM_SIMULATIONS }, () => Array(NUM_YEARS).fill(0));
+    const assetValuesOverYears = Array.from({ length: NUM_SIMULATIONS }, () => Array.from({ length: NUM_YEARS }, () => Array(extendedAssets.length).fill(0)));
 
     // Helper to draw normal random number
     const drawNormal = (mean, sd) => randomNormal(mean, sd);
@@ -124,8 +124,8 @@ function runSimulation(params, lumpSumChanges) {
             const assetGains = values.map((val, idx) => {
                 if (idx === cashIdx) return 0;
                 if (val === 0) return 0;
-                const mu = extendedAssets[idx].mean / 100;
-                const sigma = extendedAssets[idx].sd / 100;
+                const mu = extendedAssets[idx].mean;
+                const sigma = extendedAssets[idx].sd;
                 return val * drawNormal(mu, sigma);
             });
             // Update asset values after gains
@@ -154,7 +154,7 @@ function runSimulation(params, lumpSumChanges) {
 
                 // Sell assets proportionally based on positive values (exclude cash bucket)
                 const positiveVals = values.map(v => Math.max(v, 0));
-                const posTotal = positiveVals.reduce((a,b) => a+b, 0);
+                const posTotal = positiveVals.reduce((a, b) => a + b, 0);
                 if (posTotal > 0) {
                     values = values.map((v, idx) => {
                         if (idx === cashIdx) return v + assetsToSell; // proceeds go to cash first
@@ -236,22 +236,22 @@ function generateResultsTable(data) {
         const yearData = data.assetsOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
+
     const incomeFromAssets = data.netAssetIncomeOverYears[0].map((_, yearIdx) => {
         const yearData = data.netAssetIncomeOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
+
     const annualExpenses = data.expensesOverYears[0].map((_, yearIdx) => {
         const yearData = data.expensesOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
+
     const annualTaxes = data.taxesOverYears[0].map((_, yearIdx) => {
         const yearData = data.taxesOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
+
     return medianAssets.map((assets, i) => ({
         Year: i + 1,
         Assets: `$${formatCurrency(assets)}`,
@@ -267,38 +267,38 @@ function calculateEndStats(data, params) {
     const depletionThreshold = params['Depletion Threshold'];
     const NUM_SIMULATIONS = assetsOverYears.length;
     const NUM_YEARS = assetsOverYears[0].length;
-    
+
     const endOfSimulationAssets = assetsOverYears.map(sim => sim[NUM_YEARS - 1]);
-    
+
     // Calculate depletion statistics
     const yearsOfDepletion = assetsOverYears.map(sim => {
         const depletionYear = sim.findIndex(assets => assets <= depletionThreshold);
         return depletionYear === -1 ? NUM_YEARS + 1 : depletionYear;
     });
-    
+
     const neverDepleted = yearsOfDepletion.filter(year => year === NUM_YEARS + 1);
     const depleted = yearsOfDepletion.filter(year => year !== NUM_YEARS + 1);
     const medianYearDepleted = depleted.length > 0 ? ss.median(depleted) : NUM_YEARS + 1;
-    
-    const simulationsWithDepletion = assetsOverYears.filter(sim => 
+
+    const simulationsWithDepletion = assetsOverYears.filter(sim =>
         sim.some(assets => assets <= depletionThreshold)
     );
     const depletionPercentage = (simulationsWithDepletion.length / NUM_SIMULATIONS) * 100;
-    
+
     // Calculate FEV statistics
     let countSatisfyingSimulations = 0;
     const firstExceedingYearsList = [];
-    
+
     for (let i = 0; i < NUM_SIMULATIONS; i++) {
         const netAssetIncomeSimulation = data.netAssetIncomeOverYears[i];
-        const combinedIncomeSimulation = netAssetIncomeSimulation.map((income, year) => 
+        const combinedIncomeSimulation = netAssetIncomeSimulation.map((income, year) =>
             income + data.passiveIncomeOverYears[year]
         );
-        
+
         const exceedingYears = combinedIncomeSimulation
             .map((income, year) => income > data.expensesOverYears[i][year] ? year : -1)
             .filter(year => year !== -1);
-            
+
         if (exceedingYears.length > 0) {
             const firstExceedingYear = exceedingYears[0];
             const totalIncomeSubsequentYears = combinedIncomeSimulation
@@ -307,21 +307,21 @@ function calculateEndStats(data, params) {
             const totalExpensesSubsequentYears = data.expensesOverYears[i]
                 .slice(firstExceedingYear)
                 .reduce((sum, expense) => sum + expense, 0);
-                
+
             if (totalIncomeSubsequentYears > totalExpensesSubsequentYears) {
                 countSatisfyingSimulations++;
                 firstExceedingYearsList.push(firstExceedingYear);
             }
         }
     }
-    
-    const medianFirstExceedingYear = firstExceedingYearsList.length > 0 ? 
+
+    const medianFirstExceedingYear = firstExceedingYearsList.length > 0 ?
         ss.median(firstExceedingYearsList) : 0;
-    
+
     return {
         "Median investable assets left at the end": `$${formatCurrency(ss.median(endOfSimulationAssets))}`,
         "Percentage of simulations where assets were ever depleted": `${depletionPercentage.toFixed(2)}%`,
-        "Median year assets depleted": medianYearDepleted !== NUM_YEARS + 1 && !isNaN(medianYearDepleted) ? 
+        "Median year assets depleted": medianYearDepleted !== NUM_YEARS + 1 && !isNaN(medianYearDepleted) ?
             `Year ${medianYearDepleted.toFixed(1)}` : "Never",
         "Percentage of simulations achieving escape velocity": `${((countSatisfyingSimulations * 100) / NUM_SIMULATIONS).toFixed(2)}%`,
         "Median first year escape": `${medianFirstExceedingYear.toFixed(0)}`
@@ -341,17 +341,17 @@ function destroyOldCharts() {
 // Create charts using Chart.js
 function createCharts(data, params) {
     destroyOldCharts();
-    
+
     const resultsDiv = document.getElementById('results');
     const NUM_YEARS = data.assetsOverYears[0].length;
     const initialInvestableAssets = params['Investable Assets'];
-    
+
     // Chart 1: Individual simulation trajectories
     const chartContainer1 = document.createElement('div');
     chartContainer1.className = 'chart-container';
     chartContainer1.innerHTML = '<canvas id="trajectoryChart"></canvas>';
     resultsDiv.appendChild(chartContainer1);
-    
+
     const ctx1 = document.getElementById('trajectoryChart').getContext('2d');
     const trajectoryLabels = Array.from({ length: NUM_YEARS }, (_, i) => i + 1);
     const trajectoryData = {
@@ -367,7 +367,7 @@ function createCharts(data, params) {
             fill: false
         }))
     };
-    
+
     charts.push(new Chart(ctx1, {
         type: 'line',
         data: trajectoryData,
@@ -399,24 +399,24 @@ function createCharts(data, params) {
             }
         }
     }));
-    
+
     // Chart 2: Box plot of assets over years
     const chartContainer2 = document.createElement('div');
     chartContainer2.className = 'chart-container';
     chartContainer2.innerHTML = '<canvas id="boxPlotChart"></canvas>';
     resultsDiv.appendChild(chartContainer2);
-    
+
     const ctx2 = document.getElementById('boxPlotChart').getContext('2d');
-    
+
     // Calculate medians and box plot data
     const medians = data.assetsOverYears[0].map((_, yearIdx) => {
         const yearData = data.assetsOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
-    const extendedYears = [0, ...Array.from({length: NUM_YEARS}, (_, i) => i + 1)];
+
+    const extendedYears = [0, ...Array.from({ length: NUM_YEARS }, (_, i) => i + 1)];
     const extendedMedians = [initialInvestableAssets, ...medians];
-    
+
     // Box plot data for each year
     const boxPlotData = extendedYears.map(year => {
         if (year === 0) {
@@ -429,10 +429,10 @@ function createCharts(data, params) {
                 max: initialInvestableAssets
             };
         }
-        
+
         const yearData = data.assetsOverYears.map(sim => sim[year - 1]);
         yearData.sort((a, b) => a - b);
-        
+
         return {
             x: year,
             min: ss.min(yearData),
@@ -443,7 +443,7 @@ function createCharts(data, params) {
             max: ss.max(yearData)
         };
     });
-    
+
     charts.push(new Chart(ctx2, {
         type: 'boxplot',
         data: {
@@ -477,7 +477,7 @@ function createCharts(data, params) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             const v = context.raw;
                             if (!v || typeof v !== 'object') return '';
                             return [
@@ -508,27 +508,27 @@ function createCharts(data, params) {
             }
         }
     }));
-    
+
     // Chart 3: Income vs Expenses
     const chartContainer3 = document.createElement('div');
     chartContainer3.className = 'chart-container';
     chartContainer3.innerHTML = '<canvas id="incomeExpensesChart"></canvas>';
     resultsDiv.appendChild(chartContainer3);
-    
+
     const ctx3 = document.getElementById('incomeExpensesChart').getContext('2d');
-    
+
     const medianNetAssetIncome = data.netAssetIncomeOverYears[0].map((_, yearIdx) => {
         const yearData = data.netAssetIncomeOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
+
     const medianExpenses = data.expensesOverYears[0].map((_, yearIdx) => {
         const yearData = data.expensesOverYears.map(sim => sim[yearIdx]);
         return ss.median(yearData);
     });
-    
-    const years = Array.from({length: NUM_YEARS}, (_, i) => i + 1);
-    
+
+    const years = Array.from({ length: NUM_YEARS }, (_, i) => i + 1);
+
     charts.push(new Chart(ctx3, {
         type: 'line',
         data: {
@@ -584,21 +584,21 @@ function createCharts(data, params) {
             }
         }
     }));
-    
+
     // Chart 4: Income vs Expenses with Lump Sums
     if (lumpSums.size > 0) {
         const chartContainer4 = document.createElement('div');
         chartContainer4.className = 'chart-container';
         chartContainer4.innerHTML = '<canvas id="incomeExpensesLumpChart"></canvas>';
         resultsDiv.appendChild(chartContainer4);
-        
+
         const ctx4 = document.getElementById('incomeExpensesLumpChart').getContext('2d');
-        
+
         const lumpSumData = Array.from(lumpSums.entries()).map(([year, amount]) => ({
             x: year,
             y: amount
         }));
-        
+
         charts.push(new Chart(ctx4, {
             type: 'line',
             data: {
@@ -668,15 +668,15 @@ function createCharts(data, params) {
             }
         }));
     }
-    
+
     // Chart 5: Percentage Coverage Box Plot
     const chartContainer5 = document.createElement('div');
     chartContainer5.className = 'chart-container';
     chartContainer5.innerHTML = '<canvas id="coverageChart"></canvas>';
     resultsDiv.appendChild(chartContainer5);
-    
+
     const ctx5 = document.getElementById('coverageChart').getContext('2d');
-    
+
     // Calculate percentage covered for each year
     const percentageCoveredData = years.map(year => {
         const yearIdx = year - 1;
@@ -686,9 +686,9 @@ function createCharts(data, params) {
             const expenses = data.expensesOverYears[simIdx][yearIdx];
             return ((netAssetIncome + passiveIncome) / expenses) * 100;
         });
-        
+
         coverageData.sort((a, b) => a - b);
-        
+
         return {
             x: year,
             min: ss.min(coverageData),
@@ -698,7 +698,7 @@ function createCharts(data, params) {
             max: ss.max(coverageData)
         };
     });
-    
+
     charts.push(new Chart(ctx5, {
         type: 'boxplot',
         data: {
@@ -751,7 +751,7 @@ function createCharts(data, params) {
 
     // === NEW CHARTS: Asset / Liability Breakdown ===
     if (data.assetValuesOverYears && data.assetValuesOverYears.length > 0) {
-        const visibleIdxs = data.assetNames.map((n,i)=> n!=='General Cash'? i:null).filter(i=>i!==null);
+        const visibleIdxs = data.assetNames.map((n, i) => n !== 'General Cash' ? i : null).filter(i => i !== null);
         const NUM_ASSETS = visibleIdxs.length;
         // Median value for each asset per year
         const medianAssetValsByYear = Array.from({ length: NUM_YEARS }, (_, y) => {
@@ -851,16 +851,16 @@ function createCharts(data, params) {
 // Render tables
 function renderTable(data, title) {
     const resultsDiv = document.getElementById('results');
-    
+
     const tableContainer = document.createElement('div');
     tableContainer.className = 'results-table';
-    
+
     const titleElement = document.createElement('h3');
     titleElement.textContent = title;
     tableContainer.appendChild(titleElement);
-    
+
     const table = document.createElement('table');
-    
+
     // Create header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -871,7 +871,7 @@ function renderTable(data, title) {
     });
     thead.appendChild(headerRow);
     table.appendChild(thead);
-    
+
     // Create body
     const tbody = document.createElement('tbody');
     data.forEach(row => {
@@ -884,7 +884,7 @@ function renderTable(data, title) {
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    
+
     tableContainer.appendChild(table);
     resultsDiv.appendChild(tableContainer);
 }
@@ -893,33 +893,33 @@ function renderTable(data, title) {
 function updateAssetsTable() {
     const tbody = document.getElementById('assets_body');
     tbody.innerHTML = '';
-    
+
     assetList.forEach((asset, idx) => {
         const row = document.createElement('tr');
-        
+
         const nameCell = document.createElement('td');
         nameCell.textContent = asset.name;
         row.appendChild(nameCell);
-        
+
         const valueCell = document.createElement('td');
         valueCell.textContent = `$${formatCurrency(asset.value)}`;
         row.appendChild(valueCell);
-        
+
         const meanCell = document.createElement('td');
-        meanCell.textContent = `${asset.mean.toFixed(2)}%`;
+        meanCell.textContent = asset.mean.toFixed(3);
         row.appendChild(meanCell);
-        
+
         const sdCell = document.createElement('td');
-        sdCell.textContent = `${asset.sd.toFixed(2)}%`;
+        sdCell.textContent = asset.sd.toFixed(3);
         row.appendChild(sdCell);
-        
+
         const actionCell = document.createElement('td');
         const removeBtn = document.createElement('button');
         removeBtn.textContent = '-';
         removeBtn.onclick = () => removeAsset(idx);
         actionCell.appendChild(removeBtn);
         row.appendChild(actionCell);
-        
+
         tbody.appendChild(row);
     });
 }
@@ -929,10 +929,10 @@ function addAsset() {
     const value = parseFloat(stripCommas(document.getElementById('asset_value').value)) || 0;
     const mean = parseFloat(document.getElementById('asset_ret_mean').value) || 0;
     const sd = parseFloat(document.getElementById('asset_ret_sd').value) || 0;
-    
+
     const errorEl = document.getElementById('asset_error');
     let errorMessage = '';
-    
+
     if (!name) {
         errorMessage = 'Name is required.';
     } else if (value <= 0) {
@@ -942,17 +942,17 @@ function addAsset() {
     } else if (sd <= 0) {
         errorMessage = 'Expected return SD must be positive.';
     }
-    
+
     if (errorMessage) {
         errorEl.textContent = errorMessage;
         return;
     } else {
         errorEl.textContent = '';
     }
-    
+
     assetList.push({ name, value, mean, sd });
     updateAssetsTable();
-    
+
     // Clear inputs
     document.getElementById('asset_name').value = '';
     document.getElementById('asset_value').value = '';
@@ -971,27 +971,27 @@ function removeAsset(idx) {
 function updateLumpSumsTable() {
     const tbody = document.getElementById('lump_sums_body');
     tbody.innerHTML = '';
-    
+
     Array.from(lumpSums.entries())
         .sort(([a], [b]) => a - b)
         .forEach(([year, amount]) => {
             const row = document.createElement('tr');
-            
+
             const yearCell = document.createElement('td');
             yearCell.textContent = year.toString();
             row.appendChild(yearCell);
-            
+
             const amountCell = document.createElement('td');
             amountCell.textContent = `$${formatCurrency(amount)}`;
             row.appendChild(amountCell);
-            
+
             const actionCell = document.createElement('td');
             const removeBtn = document.createElement('button');
             removeBtn.textContent = 'Remove';
             removeBtn.onclick = () => removeLumpSum(year);
             actionCell.appendChild(removeBtn);
             row.appendChild(actionCell);
-            
+
             tbody.appendChild(row);
         });
 }
@@ -1000,14 +1000,14 @@ function addLumpSum() {
     const year = parseInt(document.getElementById('lump_year').value);
     const amount = parseFloat(stripCommas(document.getElementById('lump_amount').value)) || 0;
     const maxYears = parseInt(document.getElementById('years').value);
-    
+
     if (year < 1 || year > maxYears) {
         return;
     }
-    
+
     lumpSums.set(year, amount);
     updateLumpSumsTable();
-    
+
     // Clear inputs
     document.getElementById('lump_year').value = '1';
     document.getElementById('lump_amount').value = '0';
@@ -1022,26 +1022,26 @@ function removeLumpSum(year) {
 async function exportToPDF() {
     const exportBtn = document.getElementById('export_pdf');
     exportBtn.style.display = 'none';
-    
+
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
-    
+
     // Add title
     pdf.setFontSize(20);
     pdf.text("Financial Simulation Report", 20, 20);
-    
+
     // Add timestamp
     pdf.setFontSize(10);
     const timestamp = new Date().toLocaleString();
     pdf.text(`Generated on: ${timestamp}`, 20, 30);
-    
+
     // Add input parameters
     pdf.setFontSize(12);
     pdf.text("Simulation Parameters:", 20, 45);
-    
+
     let yPosition = 55;
     const { params } = parseInputs();
-    
+
     for (const [key, value] of Object.entries(params)) {
         let displayValue = value;
         if (typeof value === 'number' && !Number.isInteger(value)) {
@@ -1051,13 +1051,13 @@ async function exportToPDF() {
         pdf.text(`${key}: ${displayValue}`, 25, yPosition);
         yPosition += 7;
     }
-    
+
     // Add lump sums
     yPosition += 10;
     pdf.setFontSize(12);
     pdf.text("Lump Sums:", 20, yPosition);
     yPosition += 10;
-    
+
     if (lumpSums.size > 0) {
         pdf.setFontSize(10);
         for (const [year, amount] of Array.from(lumpSums.entries()).sort(([a], [b]) => a - b)) {
@@ -1068,17 +1068,17 @@ async function exportToPDF() {
         pdf.text("No lump sums defined", 25, yPosition);
         yPosition += 7;
     }
-    
+
     // Add charts and tables
     const resultsDiv = document.getElementById('results');
-    
+
     // Convert each chart to canvas and add to PDF
     for (const canvas of resultsDiv.querySelectorAll('canvas')) {
         pdf.addPage();
         const imgData = canvas.toDataURL('image/png');
         pdf.addImage(imgData, 'PNG', 20, 20, 170, 100);
     }
-    
+
     // Add tables
     for (const table of resultsDiv.querySelectorAll('table')) {
         pdf.addPage();
@@ -1086,10 +1086,10 @@ async function exportToPDF() {
         const imgData = canvas.toDataURL('image/png');
         pdf.addImage(imgData, 'PNG', 20, 20, 170, 100);
     }
-    
+
     // Save the PDF
     pdf.save('financial_simulation_report.pdf');
-    
+
     // Show the export button again
     exportBtn.style.display = 'inline-block';
 }
@@ -1099,21 +1099,21 @@ async function runSim() {
     const runButton = document.getElementById('run');
     runButton.textContent = 'Simulating...';
     runButton.disabled = true;
-    
+
     // Clear previous results
     document.getElementById('results').innerHTML = '';
-    
+
     try {
         // Small delay to allow UI to update
         await new Promise(resolve => setTimeout(resolve, 10));
-        
+
         const { params, lumpSums: lumpSumChanges } = parseInputs();
         const simData = runSimulation(params, lumpSumChanges);
-        
+
         // Generate and display results table
         const resultsTable = generateResultsTable(simData);
         renderTable(resultsTable, 'Simulation Results by Year');
-        
+
         // Calculate and display statistics
         const stats = calculateEndStats(simData, params);
         const statsTable = Object.entries(stats).map(([key, value]) => ({
@@ -1121,13 +1121,13 @@ async function runSim() {
             Value: value
         }));
         renderTable(statsTable, 'Key Insights');
-        
+
         // Create charts
         createCharts(simData, params);
-        
+
         // Show export button
         document.getElementById('export_pdf').style.display = 'inline-block';
-        
+
     } catch (error) {
         console.error('Simulation error:', error);
         document.getElementById('results').innerHTML = `<div style="color: red; padding: 20px;">Error running simulation: ${error.message}</div>`;
@@ -1138,21 +1138,21 @@ async function runSim() {
 }
 
 // Event listeners and initialization
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Asset management
     document.getElementById('add_asset').addEventListener('click', addAsset);
-    
+
     // Lump sum management
     document.getElementById('add_lump_sum').addEventListener('click', addLumpSum);
-    
+
     // Main simulation
     document.getElementById('run').addEventListener('click', runSim);
-    
+
     // PDF export
     document.getElementById('export_pdf').addEventListener('click', exportToPDF);
-    
+
     // Toggle sections
-    document.getElementById('toggle_assets').addEventListener('click', function() {
+    document.getElementById('toggle_assets').addEventListener('click', function () {
         const section = document.getElementById('assets_section');
         const button = this;
         if (section.style.display === 'none') {
@@ -1163,8 +1163,8 @@ document.addEventListener('DOMContentLoaded', function() {
             button.textContent = '+';
         }
     });
-    
-    document.getElementById('toggle_lumps').addEventListener('click', function() {
+
+    document.getElementById('toggle_lumps').addEventListener('click', function () {
         const section = document.getElementById('lump_section');
         const button = this;
         if (section.style.display === 'none') {
@@ -1175,64 +1175,64 @@ document.addEventListener('DOMContentLoaded', function() {
             button.textContent = '+';
         }
     });
-    
+
     // Modal functionality
     const instructionsModal = document.getElementById('instructionsModal');
     const fevModal = document.getElementById('fevModal');
     const cardModal = document.getElementById('cardInfoModal');
-    
+
     document.getElementById('openInstructions').addEventListener('click', () => {
         instructionsModal.style.display = 'block';
     });
-    
+
     document.getElementById('openFEV').addEventListener('click', () => {
         fevModal.style.display = 'block';
     });
-    
+
     document.getElementById('closeInstructions').addEventListener('click', () => {
         instructionsModal.style.display = 'none';
     });
-    
+
     document.getElementById('closeFEV').addEventListener('click', () => {
         fevModal.style.display = 'none';
     });
-    
+
     document.getElementById('closeCardInfo').addEventListener('click', () => {
         cardModal.style.display = 'none';
     });
-    
+
     // Close modals when clicking outside
     window.addEventListener('click', (e) => {
         if (e.target === instructionsModal) instructionsModal.style.display = 'none';
         if (e.target === fevModal) fevModal.style.display = 'none';
         if (e.target === cardModal) cardModal.style.display = 'none';
     });
-    
+
     // Info button functionality
     const infoContent = {
-        general: `<h2>General Parameters</h2><p>These parameters control the overall simulation length and randomness.</p><ul><li><b>Random Seed</b>: ensures repeatable runs.</li><li><b>Years</b>: duration of the simulation.</li><li><b>Simulations</b>: number of Monte Carlo trials to run.</li><li><b>Tax Rate</b>: percentage applied to capital gains when assets are sold.</li><li><b>Inflation</b>: annual increase applied to expenses.</li><li><b>Depletion Threshold</b>: asset level considered "out of money".</li></ul>`,
-        assets: `<h2>Assets</h2><p>Add each investable asset you own.</p><ul><li><b>Name</b>: descriptive label.</li><li><b>Value ($)</b>: current market value.</li><li><b>Expected Return Mean (%)</b>: average annual return.</li><li><b>Expected Return SD (%)</b>: annual volatility.</li></ul><p>The simulator automatically computes a weighted portfolio return and volatility.</p>`,
+        general: `<h2>General Parameters</h2><p>These parameters control the overall simulation length and randomness.</p><ul><li><b>Random Seed</b>: ensures repeatable runs.</li><li><b>Years</b>: duration of the simulation. Could also be months - adjust other parameters accordingly</li><li><b>Simulations</b>: number of Monte Carlo trials to run.</li><li><b>Tax Rate</b>: percentage applied to capital gains when assets are sold.</li><li><b>Inflation</b>: annual increase applied to expenses.</li><li><b>Depletion Threshold</b>: asset level considered "out of money".</li><li><b>Excess Cash Goes To</b>: assets or liabilities. If you have extra cash at the end of each year, do you pay down debt or invest?</li></ul>`,
+        assets: `<h2>Assets</h2><p>Add each investable asset you own.</p><ul><li><b>Name</b>: descriptive label.</li><li><b>Value ($)</b>: current market value.</li><li><b>Expected Return Mean (decimal)</b>: average annual return.</li><li><b>Expected Return SD (%)</b>: annual volatility.</li></ul><p>The simulator automatically computes a weighted portfolio return and volatility.</p>`,
         active: `<h2>Active Income</h2><p>Your employment or business income.</p><ul><li><b>Active Income ($)</b>: after-tax annual pay.</li><li><b>Active Income Growth Rate (%)</b>: expected yearly raises.</li><li><b>Years to Work</b>: number of years this income is earned.</li></ul>`,
         passive: `<h2>Passive Income</h2><p>Recurring income streams such as pensions, Social Security, or rental income.</p><ul><li><b>Additional Passive Income ($)</b>: current annual amount.</li><li><b>Passive Income Growth Rate (%)</b>: expected yearly change (can be negative).</li></ul>`,
         expenses: `<h2>Expenses</h2><p>Annual living costs and their variability.</p><ul><li><b>Expected Expenses Mean ($)</b>: typical yearly spending.</li><li><b>Expected Expenses SD ($)</b>: variability of that spending.</li><li><b>Unexpected Expense Chance (%)</b>: probability of a surprise expense each year.</li><li><b>Unexpected Expense Amount ($)</b>: size of that surprise cost.</li></ul>`,
         lumps: `<h2>Lump Sums</h2><p>Add one-off future cash flows.</p><ul><li><b>Year</b>: simulation year (1-n).</li><li><b>Amount ($)</b>: positive for income, negative for expenses.</li></ul>`,
         liabilities: `<h2>Liabilities</h2><p>Add each debt you hold (credit cards, loans, mortgage).</p><ul><li><b>Name</b>: descriptive label.</li><li><b>Amount ($)</b>: outstanding balance (enter positive amount).</li><li><b>Expected Interest Mean (%)</b>: average annual interest rate (negative growth to assets).</li><li><b>Interest SD (%)</b>: volatility of that rate.</li></ul>`
     };
-    
+
     document.querySelectorAll('.info-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const key = btn.getAttribute('data-info');
             document.getElementById('cardInfoBody').innerHTML = infoContent[key] || '';
             cardModal.style.display = 'block';
         });
     });
-    
+
     // Number formatting for currency inputs
     function addFormatListeners(input) {
-        input.addEventListener('focus', function() {
+        input.addEventListener('focus', function () {
             input.value = input.value.replace(/,/g, '');
         });
-        input.addEventListener('blur', function() {
+        input.addEventListener('blur', function () {
             if (input.value !== '') {
                 const num = Number(input.value.replace(/,/g, ''));
                 if (!isNaN(num)) {
@@ -1241,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     document.querySelectorAll('input.format-number').forEach(addFormatListeners);
 
     // Register boxplot / violin controllers for @sgratzl/chartjs-chart-boxplot (needed for Chart.js v4)
@@ -1257,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Liability management
     document.getElementById('add_liability').addEventListener('click', addLiability);
 
-    document.getElementById('toggle_liabilities').addEventListener('click', function() {
+    document.getElementById('toggle_liabilities').addEventListener('click', function () {
         const section = document.getElementById('liabilities_section');
         const button = this;
         if (section.style.display === 'none') {
@@ -1283,10 +1283,10 @@ function updateLiabilitiesTable() {
         valueCell.textContent = `$${formatCurrency(-liab.value)}`; // display positive
         row.appendChild(valueCell);
         const meanCell = document.createElement('td');
-        meanCell.textContent = `${liab.mean.toFixed(2)}%`;
+        meanCell.textContent = liab.mean.toFixed(3);
         row.appendChild(meanCell);
         const sdCell = document.createElement('td');
-        sdCell.textContent = `${liab.sd.toFixed(2)}%`;
+        sdCell.textContent = liab.sd.toFixed(3);
         row.appendChild(sdCell);
         const actionCell = document.createElement('td');
         const removeBtn = document.createElement('button');
@@ -1312,18 +1312,18 @@ function addLiability() {
     } else if (sd < 0) {
         errorMessage = 'SD must be non-negative.';
     }
-    if (errorMessage) { errorEl.textContent = errorMessage; return; } else { errorEl.textContent=''; }
-    liabilityList.push({name, value: -Math.abs(value), mean, sd});
+    if (errorMessage) { errorEl.textContent = errorMessage; return; } else { errorEl.textContent = ''; }
+    liabilityList.push({ name, value: -Math.abs(value), mean, sd });
     updateLiabilitiesTable();
-    document.getElementById('liability_name').value='';
-    document.getElementById('liability_value').value='';
-    document.getElementById('liability_ret_mean').value='';
-    document.getElementById('liability_ret_sd').value='';
+    document.getElementById('liability_name').value = '';
+    document.getElementById('liability_value').value = '';
+    document.getElementById('liability_ret_mean').value = '';
+    document.getElementById('liability_ret_sd').value = '';
 }
 
 function removeLiability(idx) {
-    if (idx>=0 && idx<liabilityList.length) {
-        liabilityList.splice(idx,1);
+    if (idx >= 0 && idx < liabilityList.length) {
+        liabilityList.splice(idx, 1);
         updateLiabilitiesTable();
     }
 }
