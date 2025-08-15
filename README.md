@@ -10,7 +10,7 @@ A major financial goal that many people have is being able to afford to retire, 
 Running locally ensures that all the information you enter is private and never leaves your machine. 
 
 ```
-Download the file simulation.html and open it locally with any modern browser.
+Download the file index.html and open it locally with any modern browser.
 ```
 Click on the 'Intrepreting Results', 'What is FEV', and information buttons in each section for important usage instructions.
 
